@@ -1,0 +1,30 @@
+#!/bin/bash
+#SBATCH -A m4229
+#SBATCH -C gpu
+#SBATCH -q regular
+#SBATCH -t 48:00:00
+#SBATCH -N 1
+#SBATCH --ntasks-per-node=4
+#SBATCH -c 8
+#SBATCH --gpus-per-task=1
+#SBATCH --job-name={{PDB_ID}}_WP
+#SBATCH --output={{PDB_ID}}_WP.out
+
+export SLURM_CPU_BIND="cores"
+
+# Make sure environment is set
+source env.sh
+
+export WEST_SIM_ROOT=$PWD
+
+export OMPI_MCA_pml=ob1
+export OMPI_MCA_btl="self,tcp"
+export OMPI_MCA_opal_warn_on_missing_libcuda=0
+export OMPI_MCA_opal_cuda_support=true
+export PMIX_MCA_psec=native
+
+which mpiexec
+echo 'tasks:' $SLURM_NTASKS
+
+srun --mpi=pmix -n $SLURM_NTASKS w_run --work-manager mpi --n-workers=$SLURM_NTASKS
+

@@ -14,7 +14,7 @@ west:
   propagation:
     max_total_iterations: 12500
     max_run_wallclock:    72:00:00
-    propagator:           openmm_explicit_p_ca_propagator.OpenMMExplicitPropagator
+    propagator:           openmm_explicit_rmsd_p_ca_propagator.OpenMMExplicitPropagator
     gen_istates:          false
     block_size:           1
   
@@ -45,8 +45,3 @@ west:
     implicit_solvent: false # set to true if using implicit solvent
     steps: 1000
     save_steps: 100
-    pcoord_calculator:
-      class: rmsd_p_ca_progress_coordinate.RMSDProgressCoordinate
-      reference_pdb_path: /global/cfs/cdirs/m4229/caden/westpa_dna_protein/{{PDB_ID}}_WP/processed/{{PDB_ID}}_processed.pdb
-      atom_selection: name P or name CA
-      components: [0]

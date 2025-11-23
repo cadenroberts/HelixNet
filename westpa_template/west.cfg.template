@@ -42,6 +42,5 @@ west:
     barostatInterval: 25
     constraintTolerance: 1e-6
     hydrogenMass: 1.5            # amu
-    implicit_solvent: false # set to true if using implicit solvent
     steps: 1000
     save_steps: 100

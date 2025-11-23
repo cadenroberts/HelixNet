@@ -97,7 +97,6 @@ class OpenMMPropagator(BasePropagator):
         self.barostatInterval = int(config.get('barostatInterval', 25))
         self.constraintTolerance = float(config.get('constraintTolerance', 1e-6))
         self.hydrogenMass = float(config.get('hydrogenMass', 1.5))
-        self.implicit_solvent = config.get('implicit_solvent', False)
         self.steps = config['steps']
         self.save_steps = config['save_steps']
         self.save_format = self._get_save_format(['west', 'openmm'])
@@ -337,8 +336,6 @@ class OpenMMExplicitPropagator(OpenMMPropagator):
     
     def __init__(self, rc=None):
         super(OpenMMExplicitPropagator, self).__init__(rc)
-        if self.implicit_solvent:
-            raise ValueError("OpenMMExplicitPropagator requires implicit_solvent=False")
         self.nonbondedMethod = PME
         
         md_top_full = mdtraj.Topology.from_openmm(self.pdb.topology)

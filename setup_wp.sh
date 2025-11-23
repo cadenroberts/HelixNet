@@ -30,7 +30,7 @@ sed "s/{{PDB_ID}}/$pdb_id/g" \
 sed "s/{{PDB_ID}}/$pdb_id/g" \
     westpa_template/b.txt.template > "${pdb_id}_WP/b.txt"
 
-cp westpa_template/openmm_explicit_p_ca_propagator.py "${pdb_id}_WP/openmm_explicit_p_ca_propagator.py"
+cp westpa_template/openmm_explicit_rmsd_p_ca_propagator.py "${pdb_id}_WP/openmm_explicit_rmsd_p_ca_propagator.py"
 cp westpa_template/env.sh "${pdb_id}_WP/env.sh"
 
 cd "${pdb_id}_WP"

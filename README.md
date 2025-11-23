@@ -2,7 +2,9 @@
 
 ---
 
-## 🧱 Repository Structure
+## 🧱 WESTPA Repository Structure
+
+You must replace the pdb path for topology_path in west.cfg.template and set up your own openmm and westpa envs (west.cfg.template: 32 and env.sh: 1, 10, 11, 20 and setup_wp.sh: 12)
 
 ---
 ```yaml

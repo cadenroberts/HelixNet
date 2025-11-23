@@ -19,7 +19,7 @@ westpa_template/
 ```
 
 ### batch_wp.sh
-Script to submit a .json of PDB_IDs to setup_wp.sh
+Script to submit a .json of PDB_IDs to run with setup_wp.sh.
 
 ### preprocess_pdb.py
 Script to preprocess a pdb for openmm explicit solvent.

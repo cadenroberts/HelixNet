@@ -17,7 +17,7 @@ else
 fi
 unset __mamba_setup
 #eval "$($MAMBA_EXE shell hook --shell bash --root-prefix "$MAMBA_ROOT_PREFIX")"
-micromamba activate --prefix HelixNet/micromamba_root/envs/westpa_env
+micromamba activate --prefix /global/cfs/cdirs/m4229/caden/micromamba_root/envs/westpa_env
 # <<< mamba initialize <<<
 
 export HDF5_USE_FILE_LOCKING=0

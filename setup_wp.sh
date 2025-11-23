@@ -9,12 +9,18 @@ fi
 
 eval "$(micromamba shell hook --shell bash)"
 
-micromamba activate HelixNet/micromamba_root/envs/openmm
+micromamba activate /global/cfs/cdirs/m4229/caden/micromamba_root/envs/openmm
 
 ./preprocess_pdb.py "$pdb_id"
-# output directory
+preprocess_rc=$?
 
-# copy + substitute in all template files
+if [ $preprocess_rc -ne 0 ]; then
+    echo "!!! Preprocessing FAILED for $pdb_id (exit code $preprocess_rc)"
+    echo "!!! Giving up. Not runnning w_init. Cleaning directory ${pdb_id}_WP."
+    rm -rf "${pdb_id}_WP"
+    exit $preprocess_rc
+fi
+
 sed "s/{{PDB_ID}}/$pdb_id/g" \
     westpa_template/run.slurm.template > "${pdb_id}_WP/run.slurm"
 
@@ -24,18 +30,28 @@ sed "s/{{PDB_ID}}/$pdb_id/g" \
 sed "s/{{PDB_ID}}/$pdb_id/g" \
     westpa_template/b.txt.template > "${pdb_id}_WP/b.txt"
 
-cp westpa_template/openmm_implicit_p_ca_propagator.py "${pdb_id}_WP/openmm_implicit_p_ca_propagator.py"
-cp westpa_template/openmm_p_ca_propagator.py "${pdb_id}_WP/openmm_p_ca_propagator.py"
-cp westpa_template/base_propagator.py "${pdb_id}_WP/base_propagator.py"
+cp westpa_template/openmm_explicit_p_ca_propagator.py "${pdb_id}_WP/openmm_explicit_p_ca_propagator.py"
 cp westpa_template/rmsd_p_ca_progress_coordinate.py "${pdb_id}_WP/rmsd_p_ca_progress_coordinate.py"
-cp westpa_template/base_progress_coordinate.py "${pdb_id}_WP/base_progress_coordinate.py"
 cp westpa_template/env.sh "${pdb_id}_WP/env.sh"
-cp westpa_template/save_npz.py "${pdb_id}_WP/save_npz.py"
-cp westpa_template/save_dcd.py "${pdb_id}_WP/save_dcd.py"
 
 cd "${pdb_id}_WP"
 
 chmod +x env.sh
 source env.sh
 w_init --bstate-file b.txt
+winit_rc=$?
+if [ $winit_rc -ne 0 ]; then
+    echo "!!! w_init FAILED for $pdb_id (exit code $winit_rc)"
+    echo "!!! Cleaning ${pdb_id}_WP/traj_segs and ${pdb_id}_WP/west.h5."
+    rm -rf "traj_segs"
+    rm -f  "west.h5"
+    w_init --bstate-file b.txt
+    winit_rc=$?
+    if [ $winit_rc -ne 0 ]; then
+        echo "!!! w_init FAILED AGAIN for $pdb_id (attempt 2, exit code $winit_rc)"
+        echo "!!! Giving up. Not submitting WESTPA job. Cleaning directory ${pdb_id}_WP."
+        rm -rf "${pdb_id}_WP"
+        exit $winit_rc
+    fi
+fi
 sbatch run.slurm

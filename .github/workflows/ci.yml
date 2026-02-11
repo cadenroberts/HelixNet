@@ -19,7 +19,7 @@ jobs:
       with:
         auto-update-conda: true
         python-version: "3.10"
-        miniforge-variant: Mambaforge
+        miniforge-variant: Miniforge3
         use-mamba: true
     
     - name: Install dependencies

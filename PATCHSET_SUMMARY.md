@@ -59,7 +59,24 @@
 
 ## PHASE 4 — VERIFICATION IMPLEMENTATION
 
-(To be completed)
+Created `scripts/demo.sh` smoke test:
+
+- Validates preprocessing (PDB download, PDBFixer, solvation)
+- Verifies directory structure (`{PDB_ID}_WP/raw/`, `{PDB_ID}_WP/processed/`)
+- Checks raw PDB atom count (>100 atoms)
+- Checks processed PDB atom count (>5000 atoms for solvated system)
+- Validates forcefield configuration (amber14-all.xml present)
+- Tests template expansion (sed substitution of `{{PDB_ID}}`)
+- Cleans up test artifacts
+
+**Verification limitation**: Smoke test requires OpenMM, PDBFixer, RDKit, openmmforcefields, and network access (RCSB). Cannot run in standard CI without these dependencies. Script exits with `SMOKE_OK` on success.
+
+**Local execution blocked by**:
+- Missing OpenMM/WESTPA environment
+- RCSB network dependency
+- Large conda/pip dependency surface
+
+Full demo requires NERSC infrastructure (Slurm, GPU nodes, MPI).
 
 ---
 

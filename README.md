@@ -2,23 +2,52 @@
 
 Distributed simulation orchestration system for WESTPA/OpenMM molecular dynamics workloads.
 
-## Purpose
+## What it does
 
-HelixNet automates the setup, execution, and monitoring of weighted ensemble (WESTPA) molecular dynamics simulations across GPU-backed HPC nodes. Given a list of PDB identifiers, the system downloads structures from RCSB, preprocesses them (fix missing atoms, add solvent, parameterize ligands), generates per-target WESTPA configurations from templates, and submits Slurm jobs to NERSC infrastructure. A monitoring loop tracks iteration progress and resubmits incomplete simulations.
+- Downloads PDB structures from RCSB and repairs missing atoms/residues via PDBFixer
+- Identifies small-molecule ligands, retrieves canonical SMILES from RCSB GraphQL, and parameterizes with GAFF
+- Solvates structures with explicit TIP3P water and ions
+- Generates per-target WESTPA configurations from version-controlled templates
+- Submits GPU-accelerated weighted ensemble simulations to NERSC Slurm infrastructure
+- Monitors iteration progress and resubmits incomplete simulations
 
 ## Architecture
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for full diagrams.
 
-The pipeline has three stages:
+### Pipeline stages
 
-1. **Preprocessing** (`preprocess_pdb.py`) — Downloads PDB from RCSB, fixes missing residues/atoms via PDBFixer, replaces nonstandard residues, identifies and parameterizes small-molecule ligands using GAFF/OpenFF, adds explicit TIP3P solvent with 1.0 nm padding and 0.15 M ionic strength, validates topology, and writes the processed structure.
+```
+PDB ID
+  ↓
+preprocess_pdb.py
+  ├→ RCSB HTTP GET → raw PDB
+  ├→ PDBFixer → structural repair
+  ├→ RDKit + RCSB GraphQL → ligand SMILES
+  ├→ GAFF template generation → ligand cache
+  └→ OpenMM solvation → processed PDB
+  ↓
+setup_wp.sh
+  ├→ sed {{PDB_ID}} → west.cfg, run.slurm, b.txt
+  ├→ w_init (WESTPA initialization)
+  └→ sbatch (Slurm submission)
+  ↓
+GPU nodes (MPI-parallel w_run)
+  ├→ OpenMMExplicitPropagator
+  │    ├→ PME electrostatics
+  │    ├→ Langevin integrator (300 K, 4 fs timestep)
+  │    ├→ Monte Carlo barostat (1 atm)
+  │    ├→ H-mass repartitioning (1.5 amu)
+  │    └→ Solute-only DCD + NPZ output
+  ├→ RMSD calculation (P + CA atoms)
+  └→ west.h5 (HDF5 iteration data)
+  ↓
+run.sh
+  ├→ h5ls west.h5/iterations
+  └→ resubmit if iter < 12,500
+```
 
-2. **Simulation setup** (`setup_wp.sh`) — Creates a per-target working directory (`{PDB_ID}_WP`), applies PDB-specific values to WESTPA configuration templates (west.cfg, run.slurm, b.txt), copies the propagator and environment scripts, initializes WESTPA state (`w_init`), and submits the Slurm job. Failed preprocessing or initialization triggers cleanup.
-
-3. **Monitoring and resubmission** (`run.sh`) — Scans all `*_WP` directories, reads iteration count from `west.h5`, and resubmits jobs that have not reached the target iteration count (12,500).
-
-## Propagator
+### Propagator
 
 `OpenMMExplicitPropagator` runs explicit-solvent Langevin dynamics with:
 - PME electrostatics
@@ -28,14 +57,7 @@ The pipeline has three stages:
 - Solute-only DCD trajectory output (strips solvent for storage efficiency)
 - XML checkpoint serialization for segment continuation
 
-## Reproducibility
-
-- Deterministic template expansion: `west.cfg`, `run.slurm`, and `b.txt` are generated from version-controlled templates with `{{PDB_ID}}` substitution.
-- Force field configuration is serialized to `forcefield.json` per target.
-- Ligand parameterization caches GAFF templates to `{PDB_ID}_processed_ligands_cache.json`.
-- WESTPA's `west.h5` stores full iteration history, enabling post-hoc analysis of any simulation state.
-
-## Failure modes
+### Failure modes
 
 | Failure | Behavior |
 |---------|----------|
@@ -47,23 +69,65 @@ The pipeline has three stages:
 | GPU mismatch at runtime | Propagator falls back to CPU platform with warning |
 | Node crash mid-segment | WESTPA resumes from last completed iteration via `west.h5` checkpoint |
 
-## Configuration
+## Design tradeoffs
 
-Key parameters in `west.cfg.template`:
+**Template-based configuration**: Shell `sed` substitution on `{{PDB_ID}}` placeholders rather than Python config generation. Templates are directly inspectable and diffable, require zero dependencies beyond `sed`, but less flexible than programmatic generation.
 
-| Parameter | Value | Notes |
-|-----------|-------|-------|
-| `max_total_iterations` | 12,500 | Total WESTPA iterations |
-| `max_run_wallclock` | 72:00:00 | Per-submission wall time |
-| `bin_target_counts` | 6 | Walkers per bin |
-| `nbins` | 9 | MAB adaptive binning |
-| `steps` | 1,000 | MD steps per segment |
-| `save_steps` | 100 | Frames saved per segment |
-| `timestep` | 4.0 fs | Enabled by H-mass repartitioning |
-| `temperature` | 300 K | |
-| `gpu_precision` | mixed | CUDA mixed precision |
+**Solute-only trajectory storage**: DCD files contain only solute atoms, reducing storage by ~10× for typical protein-water systems. Full-system forces/energies stored separately in compressed NPZ. Post-hoc analysis requiring solvent positions is impossible without re-running.
 
-## Usage
+**4 fs timestep via hydrogen mass repartitioning**: Setting `hydrogenMass=1.5` amu enables 4 fs integration, halving compute cost. Slightly alters H-bond vibrational frequencies but well-validated for equilibrium sampling. Not appropriate for kinetic properties.
+
+**P+CA RMSD progress coordinate**: Combined phosphorus and alpha-carbon RMSD collapses conformational change into one number. Simple and fast to compute, but potentially misses orthogonal motions. Multi-dimensional coordinates increase bin space exponentially.
+
+**MAB adaptive binning**: Bin boundaries adapt during simulation, reducing manual tuning. Adds recalculation overhead but eliminates risk of poorly placed fixed bins wasting walkers in uninteresting regions.
+
+**Retry-once-then-delete**: On `w_init` failure, cleanup and retry once. Second failure deletes directory entirely. Aggressive but resolves the most common failure mode (stale HDF5 locks). Corrupted directories that pass initialization cause silent downstream errors.
+
+## Evaluation
+
+See [EVAL.md](EVAL.md) for detailed metrics.
+
+### Correctness definition
+
+A correct execution satisfies:
+1. Preprocessing produces a solvated structure with all force field residues matched
+2. WESTPA initialization creates valid `west.h5` structure
+3. First iteration completes with non-zero progress coordinates
+4. Monitoring correctly identifies incomplete simulations (iter < 12,500)
+5. Topology validation: processed PDB atom/residue/bond counts match Modeller topology
+
+### Commands
+
+```bash
+# Preprocessing correctness
+./preprocess_pdb.py 1L2Y
+# Exit code 0 + assertions pass (lines 232-238 in script)
+
+# WESTPA initialization
+cd 1L2Y_WP && source env.sh && w_init --bstate-file b.txt
+# Exit code 0 + west.h5 created
+
+# Progress coordinate validation
+h5ls 1L2Y_WP/west.h5/iterations/iter_000001/pcoord
+# Dataset shows non-zero RMSD values
+
+# Monitoring logic
+./run.sh
+# Correctly reports iteration count and submission decision
+```
+
+### Pass/fail criteria
+
+- Preprocessing: exit code 0, no RuntimeError on unmatched residues
+- WESTPA init: `west.h5` exists and readable by `h5ls`
+- Propagation: `seg.dcd`, `seg.npz`, `seg.xml` present after iteration 1
+- Monitoring: correct iteration count parsed, resubmission triggered if below target
+
+## Demo
+
+See [DEMO.md](DEMO.md) for full instructions.
+
+### Quick start
 
 ```bash
 # Single target
@@ -76,7 +140,28 @@ Key parameters in `west.cfg.template`:
 ./run.sh
 ```
 
-## Repo structure
+### Expected output (preprocessing)
+
+```
+Folder created: 1ABC_WP
+Missing residues: {...}
+Missing terminals: {...}
+Missing atoms: {...}
+After the process
+Missing residues: {}
+Missing terminals: {}
+Missing atoms: {}
+```
+
+### Expected output (monitoring)
+
+```
+Checking 1ABC_WP ...
+  → Found last iteration = 5432
+Below 12500 — submitting
+```
+
+## Repository layout
 
 ```
 HelixNet/
@@ -84,6 +169,12 @@ HelixNet/
 ├── setup_wp.sh                                Per-target WESTPA setup + Slurm submission
 ├── batch_wp.sh                                Batch submission from JSON PDB list
 ├── run.sh                                     Iteration monitor + resubmission
+├── sync.sh                                    Git commit and push helper
+├── ARCHITECTURE.md                            Full pipeline diagrams and data flow
+├── DESIGN_DECISIONS.md                        ADR entries for key tradeoffs
+├── EVAL.md                                    Metrics, scaling, validation procedures
+├── DEMO.md                                    Smoke test and full demo instructions
+├── REPO_AUDIT.md                              Technical audit and improvement roadmap
 └── westpa_template/
     ├── west.cfg.template                      WESTPA master configuration
     ├── run.slurm.template                     Slurm job script
@@ -91,6 +182,17 @@ HelixNet/
     ├── env.sh                                 Environment activation
     └── openmm_explicit_rmsd_p_ca_propagator.py  Explicit-solvent propagator with RMSD pcoord
 ```
+
+## Limitations
+
+- Hardcoded NERSC paths (`/global/cfs/cdirs/m4229/caden/...`) prevent portable execution
+- No offline mode: requires RCSB network access for PDB download and ligand SMILES queries
+- No dependency version pinning: no `requirements.txt`, `environment.yml`, or lockfile
+- Single-target preprocessing is sequential in `batch_wp.sh` (no parallelization)
+- Progress coordinate (P+CA RMSD) is a 1D reduction of high-dimensional conformational space
+- No automated convergence detection: iteration target (12,500) set manually
+- PDB ID input unsanitized: potential directory traversal vulnerability
+- Monitoring loop (`run.sh`) has commented-out submission line (line 34)
 
 ## License
 

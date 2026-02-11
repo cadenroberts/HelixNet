@@ -107,4 +107,85 @@ CI does NOT validate:
 
 ## PHASE 6 — FINALIZE
 
-(To be completed)
+### Baseline commit
+
+9bb5cea535741b0024cb4f7c714fee3644babfd4
+
+### Commits made
+
+| Commit | Type | Summary |
+|--------|------|---------|
+| db6d206 | Clarifying | add repository audit |
+| 9d56853 | Refactoring | rebuild documentation and align structure |
+| bf168f1 | Clarifying | add reproducible demo script |
+| 76ddd1b | Clarifying | add continuous integration workflow |
+
+### Files added
+
+- REPO_AUDIT.md (12-section technical audit)
+- PATCHSET_SUMMARY.md (this file)
+- DEMO.md (smoke test and full demo instructions)
+- scripts/demo.sh (smoke test script)
+- .github/workflows/ci.yml (CI configuration)
+
+### Files modified
+
+- README.md (restructured to match required format: what it does, architecture, design tradeoffs, evaluation, demo, layout, limitations)
+
+### Files deleted
+
+None
+
+### Verification command output
+
+Smoke test cannot run locally due to missing OpenMM/WESTPA environment and network dependencies. CI will execute on GitHub Actions with conda environment.
+
+Expected CI output:
+```
+=== HelixNet Smoke Test ===
+Step 1: Preprocessing PDB 1L2Y...
+  ✓ Preprocessing completed
+Step 2: Verifying directory structure...
+  ✓ Directory structure valid
+Step 3: Verifying raw PDB...
+  ✓ Raw PDB downloaded (XXX atoms)
+Step 4: Verifying processed PDB...
+  ✓ Processed PDB valid (XXXX atoms, solvated)
+Step 5: Verifying forcefield configuration...
+  ✓ Forcefield configuration valid
+Step 6: Testing template expansion...
+  ✓ Template expansion works
+Step 7: Cleaning up test artifacts...
+  ✓ Cleanup complete
+
+=== Smoke Test Summary ===
+All checks passed. Core preprocessing and template logic functional.
+
+SMOKE_OK
+```
+
+### Remaining P1 improvements (from REPO_AUDIT.md)
+
+- Remove hardcoded NERSC paths from templates and scripts
+- Add `requirements.txt` or `environment.yml` with pinned dependency versions
+- Parameterize Slurm account, queue, and resource requests (currently hardcoded to `m4229`)
+- Document offline preprocessing path (cached SMILES required for no-network runs)
+- Sanitize PDB ID input: validate 4-character alphanumeric format before filesystem operations
+
+### Remaining P2 improvements
+
+- Structured logging (replace `print()` with `logging` module)
+- Add `--help` / `-h` flags to scripts
+- Progress bar or iteration throughput reporting in `run.sh`
+
+### Repository consistency status
+
+- Documentation surfaces are aligned: README, ARCHITECTURE, DESIGN_DECISIONS, EVAL, DEMO, REPO_AUDIT
+- All required artifacts present
+- CI configured and will run on next push
+- Smoke test validates core preprocessing logic
+- Full demo requires NERSC infrastructure (documented in DEMO.md)
+
+### Remaining known deltas
+
+NONE for documentation parity. P1/P2 improvements listed above are infrastructure and code quality enhancements.

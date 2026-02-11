@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Miniconda
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        auto-update-conda: true
+        python-version: "3.10"
+        miniforge-variant: Mambaforge
+        use-mamba: true
+    
+    - name: Install dependencies
+      shell: bash -l {0}
+      run: |
+        mamba install -y -c conda-forge \
+          openmm \
+          pdbfixer \
+          rdkit \
+          openff-toolkit \
+          openmmforcefields \
+          numpy \
+          requests
+    
+    - name: Run smoke test
+      shell: bash -l {0}
+      run: |
+        ./scripts/demo.sh
+    
+    - name: Verify smoke test passed
+      shell: bash -l {0}
+      run: |
+        if [ $? -ne 0 ]; then
+          echo "Smoke test failed"
+          exit 1
+        fi
+        echo "Smoke test passed"

@@ -82,7 +82,26 @@ Full demo requires NERSC infrastructure (Slurm, GPU nodes, MPI).
 
 ## PHASE 5 — CI
 
-(To be completed)
+Created `.github/workflows/ci.yml`:
+
+- Triggers on push and pull_request to main
+- Uses ubuntu-latest runner
+- Sets up Miniconda with Python 3.10
+- Installs dependencies via mamba: openmm, pdbfixer, rdkit, openff-toolkit, openmmforcefields, numpy, requests
+- Executes `scripts/demo.sh`
+- Fails on non-zero exit code
+
+CI validates:
+- PDB download and preprocessing pipeline
+- Template expansion logic
+- Directory structure creation
+- Force field configuration
+
+CI does NOT validate:
+- WESTPA initialization (requires WESTPA package)
+- Slurm submission (requires HPC infrastructure)
+- GPU propagation (requires CUDA)
+- Full simulation execution
 
 ---
 

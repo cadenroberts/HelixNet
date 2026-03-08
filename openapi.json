@@ -1,0 +1,496 @@
+{
+    "openapi": "3.0.1",
+    "info": {
+        "title": "RCSB Search API",
+        "description": "Provides programmatic access to RCSB search API.",
+        "contact": {
+            "email": "info@rcsb.org"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "2.6.0"
+    },
+    "servers": [
+        {
+            "url": "/",
+            "description": "Default URL"
+        }
+    ],
+    "paths": {
+        "/rcsbsearch/v2/query": {
+            "get": {
+                "tags": [
+                    "Search Service"
+                ],
+                "summary": "Released data search API endpoint allows you to perform GET requests with textual and scientific searches against current RCSB PDB entries",
+                "operationId": "runJsonQueriesGet",
+                "parameters": [
+                    {
+                        "name": "json",
+                        "in": "query",
+                        "description": "Search query. Must be URL-encoded.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "schema/search/request/json-schema-rcsb_search_query.json"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK.\n Request has succeeded.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "schema/search/response/json-schema-rcsb_search_results.json"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request.\n The server cannot process the request due to malformed request or invalid query syntax",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.\n The requested resource was not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type.\n The server refuses to accept the request because the payload format is in an unsupported format",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "501": {
+                        "description": "Not Implemented.\n The server does not support the functionality required to fulfill the request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "408": {
+                        "description": "Request Timeout.\n The server did not receive complete results within the time that it was prepared to wait",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error.\n The server encountered unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "No Content.\n The server successfully processed the request and did not return any results",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable.\n The server is currently unable to handle the request due to a temporary overloading",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Search Service"
+                ],
+                "summary": "Released data search API endpoint allows you to perform POST requests with textual and scientific searches against current RCSB PDB entries",
+                "operationId": "runJsonQueriesPost",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "schema/search/request/json-schema-rcsb_search_query.json"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK.\n Request has succeeded.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "schema/search/response/json-schema-rcsb_search_results.json"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request.\n The server cannot process the request due to malformed request or invalid query syntax",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.\n The requested resource was not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type.\n The server refuses to accept the request because the payload format is in an unsupported format",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "501": {
+                        "description": "Not Implemented.\n The server does not support the functionality required to fulfill the request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "408": {
+                        "description": "Request Timeout.\n The server did not receive complete results within the time that it was prepared to wait",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error.\n The server encountered unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "No Content.\n The server successfully processed the request and did not return any results",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable.\n The server is currently unable to handle the request due to a temporary overloading",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/rcsbsearch/v2/suggest": {
+            "get": {
+                "tags": [
+                    "Suggest Service"
+                ],
+                "summary": "Provides auto-complete/search-as-you-type functionality.",
+                "operationId": "getSuggestions",
+                "parameters": [
+                    {
+                        "name": "json",
+                        "in": "query",
+                        "description": "Suggest query. Must be URL-encoded.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "schema/suggest/request/json-schema-rcsb_suggest.json"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK.\n Request has succeeded.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "schema/suggest/response/json-schema-rcsb_suggest_results.json"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error.\n The server encountered unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "No Content.\n The server successfully processed the request and did not return any results",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/rcsbsearch/v2/query/unreleased": {
+            "get": {
+                "tags": [
+                    "Search Service"
+                ],
+                "summary": "Unreleased data search API endpoint allows you to perform GET requests with textual searches against RCSB PDB unreleased entries",
+                "operationId": "runUnreleasedEntryJsonQueries",
+                "parameters": [
+                    {
+                        "name": "json",
+                        "in": "query",
+                        "description": "Search query. Must be URL-encoded.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "schema/unreleased/request/json-schema-rcsb_unreleased_query.json"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK.\n Request has succeeded.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "schema/unreleased/response/json-schema-rcsb_unreleased_results.json"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request.\n The server cannot process the request due to malformed request or invalid query syntax",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found.\n The requested resource was not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type.\n The server refuses to accept the request because the payload format is in an unsupported format",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "501": {
+                        "description": "Not Implemented.\n The server does not support the functionality required to fulfill the request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "408": {
+                        "description": "Request Timeout.\n The server did not receive complete results within the time that it was prepared to wait",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error.\n The server encountered unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "No Content.\n The server successfully processed the request and did not return any results",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable.\n The server is currently unable to handle the request due to a temporary overloading",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/rcsbsearch/v2/metadata/unreleased/schema": {
+            "get": {
+                "tags": [
+                    "Metadata Service"
+                ],
+                "summary": "Get RCSB PDB unreleased entry schema.",
+                "operationId": "getUnreleasedEntryMetadata",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonNode"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/rcsbsearch/v2/metadata/schema": {
+            "get": {
+                "tags": [
+                    "Metadata Service"
+                ],
+                "summary": "Get RCSB PDB structure data schema as JSON Schema.",
+                "operationId": "getMetadata",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonNode"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/rcsbsearch/v2/metadata/chemical/schema": {
+            "get": {
+                "tags": [
+                    "Metadata Service"
+                ],
+                "summary": "Get RCSB PDB chemical data schema as JSON Schema.",
+                "operationId": "getChemicalMetadata",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonNode"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "JsonNode": {
+                "type": "object"
+            }
+        }
+    }
+}

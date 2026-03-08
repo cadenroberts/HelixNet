@@ -1,0 +1,16 @@
+{
+  "input": "rcsb-restful-api-docs.json",
+  "lines_per_chunk": 1000,
+  "total_lines": 14034,
+  "chunks": [
+    {
+      "chunk": 1,
+      "file": "chunks/rcsb-restful-api-docs.part001.json",
+      "start_line": 1,
+      "end_line": 1000,
+      "lines": 1000,
+      "valid_json": false,
+      "error": "Expecting property name enclosed in double quotes: line 1001 column 1 (char 30430)"
+    }
+  ]
+}

@@ -1,0 +1,1000 @@
+{
+  "openapi" : "3.0.1",
+  "info" : {
+    "title" : "RCSB RESTful API",
+    "description" : "Provides programmatic access to information and annotations stored in the Protein Data Bank. <br>Models are generated from JSON schema version: <b> 1.55.0 </b>",
+    "contact" : {
+      "name" : "RCSB PDB",
+      "url" : "https://www.rcsb.org",
+      "email" : "info@rcsb.org"
+    },
+    "version" : "1.55.0"
+  },
+  "servers" : [ {
+    "url" : "/rest/v1"
+  } ],
+  "tags" : [ {
+    "name" : "Assembly Service",
+    "description" : "provides access to information about structures at the quaternary structure level"
+  }, {
+    "name" : "Entity Service",
+    "description" : "provides access to information about structures at the level of unique molecular entities"
+  }, {
+    "name" : "Entity Instance Service",
+    "description" : "provides access to information about structures at the level of unique molecular instances (chains)"
+  }, {
+    "name" : "Chemical Component Service",
+    "description" : "provides access to information about chemical components from which the relevant chemical structures can be constructed."
+  }, {
+    "name" : "Entry Service",
+    "description" : "provides access to information about structures at the top entry level"
+  }, {
+    "name" : "Groups Service",
+    "description" : "provides access to groups formed by aggregating individual structures, sequences or assemblies that share a degree of similarity"
+  }, {
+    "name" : "Interface Service",
+    "description" : "provides access to information about pairwise polymeric interfaces present in assemblies"
+  }, {
+    "name" : "Repository Holdings Service",
+    "description" : "provides access to information about holdings in the PDB repository."
+  }, {
+    "name" : "Schema Service",
+    "description" : "Provides access to the RCSB PDB data schemas. The data schema is powered by the JSON Schema (json-schema.org) language."
+  } ],
+  "paths" : {
+    "/core/assembly/{entry_id}/{assembly_id}" : {
+      "get" : {
+        "tags" : [ "Assembly Service" ],
+        "summary" : "Get structural assembly description by ENTRY ID and ASSEMBLY ID.",
+        "operationId" : "getAssemblyById",
+        "parameters" : [ {
+          "name" : "entry_id",
+          "in" : "path",
+          "description" : "ENTRY ID of the entry.",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "1RH7"
+          }
+        }, {
+          "name" : "assembly_id",
+          "in" : "path",
+          "description" : "ASSEMBLY ID of the biological assembly candidate.",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "1"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CoreAssembly"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          }
+        }
+      }
+    },
+    "/core/branched_entity/{entry_id}/{entity_id}" : {
+      "get" : {
+        "tags" : [ "Entity Service" ],
+        "summary" : "Get branched entity description by ENTRY ID and ENTITY ID.",
+        "operationId" : "getBranchedEntityById",
+        "parameters" : [ {
+          "name" : "entry_id",
+          "in" : "path",
+          "description" : "ID of the entry that needs to be fetched.",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "4CYG"
+          }
+        }, {
+          "name" : "entity_id",
+          "in" : "path",
+          "description" : "ID of the entity that needs to be fetched.",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "2"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CorePolymerEntity"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          }
+        }
+      }
+    },
+    "/core/branched_entity_instance/{entry_id}/{asym_id}" : {
+      "get" : {
+        "tags" : [ "Entity Instance Service" ],
+        "summary" : "Get branched entity instance description by ENTRY ID and ASYM ID.",
+        "operationId" : "getBranchedEntityInstanceById",
+        "parameters" : [ {
+          "name" : "entry_id",
+          "in" : "path",
+          "description" : "ID of the entry that needs to be fetched.",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "1US2"
+          }
+        }, {
+          "name" : "asym_id",
+          "in" : "path",
+          "description" : "ID of the instance (chain) that needs to be fetched.",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "C"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CorePolymerEntityInstance"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          }
+        }
+      }
+    },
+    "/core/chemcomp/{comp_id}" : {
+      "get" : {
+        "tags" : [ "Chemical Component Service" ],
+        "summary" : "Get chemical component (ligands, small molecules and monomers) by CCD ID.",
+        "operationId" : "getChemCompById",
+        "parameters" : [ {
+          "name" : "comp_id",
+          "in" : "path",
+          "description" : "CHEM COMP ID that uniquely identifies the chemical component.\n For protein polymer entities, this is the three-letter code for the amino acid.\n For nucleic acid polymer entities, this is the one-letter code for the base.",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "CFF"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CoreChemComp"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          }
+        }
+      }
+    },
+    "/core/drugbank/{comp_id}" : {
+      "get" : {
+        "tags" : [ "Chemical Component Service" ],
+        "summary" : "Get DrugBank annotations (integrated from DrugBank resource) for a given chemical component (identified by CHEM COMP ID) .",
+        "operationId" : "getDrugBankByChemCompId",
+        "parameters" : [ {
+          "name" : "comp_id",
+          "in" : "path",
+          "description" : "CHEM COMP ID that uniquely identifies the chemical component.\n For protein polymer entities, this is the three-letter code for the amino acid.\n For nucleic acid polymer entities, this is the one-letter code for the base.",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "CFF"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CoreDrugbank"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          }
+        }
+      }
+    },
+    "/core/entry/{entry_id}" : {
+      "get" : {
+        "tags" : [ "Entry Service" ],
+        "summary" : "Get structure by ENTRY ID.",
+        "operationId" : "getEntryById",
+        "parameters" : [ {
+          "name" : "entry_id",
+          "in" : "path",
+          "description" : "ENTRY ID of the entry.",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "4ACQ"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CoreEntry"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          }
+        }
+      }
+    },
+    "/core/entry_groups/{group_id}" : {
+      "get" : {
+        "tags" : [ "Groups Service" ],
+        "summary" : "Get a group object that aggregates all entries associated with the specified PDB Group Deposition ID",
+        "operationId" : "getEntryGroupById",
+        "parameters" : [ {
+          "name" : "group_id",
+          "in" : "path",
+          "description" : "Group ID",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "G_1002011"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GroupEntry"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          },
+          "400" : {
+            "description" : "Bad Request"
+          }
+        }
+      }
+    },
+    "/core/group_provenance/{group_provenance_id}" : {
+      "get" : {
+        "tags" : [ "Groups Service" ],
+        "summary" : "Describes aggregation method used to create groups",
+        "operationId" : "getGroupProvenanceById",
+        "parameters" : [ {
+          "name" : "group_provenance_id",
+          "in" : "path",
+          "description" : "Group provenance ID",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "provenance_sequence_identity"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GroupProvenance"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          }
+        }
+      }
+    },
+    "/core/interface/{entry_id}/{assembly_id}/{interface_id}" : {
+      "get" : {
+        "tags" : [ "Interface Service" ],
+        "summary" : "Get pairwise polymeric interface description by ENTRY ID, ASSEMBLY ID and INTERFACE ID.",
+        "operationId" : "getInterfaceById",
+        "parameters" : [ {
+          "name" : "entry_id",
+          "in" : "path",
+          "description" : "ENTRY ID of the entry.",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "1RH7"
+          }
+        }, {
+          "name" : "assembly_id",
+          "in" : "path",
+          "description" : "ASSEMBLY ID of the biological assembly.",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "1"
+          }
+        }, {
+          "name" : "interface_id",
+          "in" : "path",
+          "description" : "INTERFACE ID of the pairwise polymeric interface.",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "1"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CoreInterface"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          }
+        }
+      }
+    },
+    "/core/nonpolymer_entity/{entry_id}/{entity_id}" : {
+      "get" : {
+        "tags" : [ "Entity Service" ],
+        "summary" : "Get non-polymer entity data by ENTRY ID and ENTITY ID.",
+        "operationId" : "getNonPolymerEntityById",
+        "parameters" : [ {
+          "name" : "entry_id",
+          "in" : "path",
+          "description" : "ENTRY ID of the entry.",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "4G22"
+          }
+        }, {
+          "name" : "entity_id",
+          "in" : "path",
+          "description" : "ENTITY ID of the non-polymer entity.",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "2"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CoreNonpolymerEntity"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          }
+        }
+      }
+    },
+    "/core/nonpolymer_entity_groups/{group_id}" : {
+      "get" : {
+        "tags" : [ "Groups Service" ],
+        "summary" : "Get a group object that aggregates all non-polymer entities associated with the specified Chemical Component ID",
+        "operationId" : "getNonPolymerEntityGroupById",
+        "parameters" : [ {
+          "name" : "group_id",
+          "in" : "path",
+          "description" : "Group ID",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "HEM"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GroupPolymerEntity"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          },
+          "400" : {
+            "description" : "Bad Request"
+          }
+        }
+      }
+    },
+    "/core/nonpolymer_entity_instance/{entry_id}/{asym_id}" : {
+      "get" : {
+        "tags" : [ "Entity Instance Service" ],
+        "summary" : "Get non-polymer entity instance description by ENTRY ID and ASYM ID (label_asym_id).",
+        "operationId" : "getNonPolymerEntityInstanceById",
+        "parameters" : [ {
+          "name" : "entry_id",
+          "in" : "path",
+          "description" : "ENTRY ID of the entry.",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "2FBW"
+          }
+        }, {
+          "name" : "asym_id",
+          "in" : "path",
+          "description" : "ASYM ID (label_asym_id) of the instance (chain).",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "J"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CoreNonpolymerEntityInstance"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          }
+        }
+      }
+    },
+    "/core/polymer_entity/{entry_id}/{entity_id}" : {
+      "get" : {
+        "tags" : [ "Entity Service" ],
+        "summary" : "Get polymer entity data by ENTRY ID and ENTITY ID.",
+        "operationId" : "getPolymerEntityById",
+        "parameters" : [ {
+          "name" : "entry_id",
+          "in" : "path",
+          "description" : "ENTRY ID of the entry.",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "4G22"
+          }
+        }, {
+          "name" : "entity_id",
+          "in" : "path",
+          "description" : "ENTITY ID of the polymer entity.",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "1"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CorePolymerEntity"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          }
+        }
+      }
+    },
+    "/core/polymer_entity_groups/{group_id}" : {
+      "get" : {
+        "tags" : [ "Groups Service" ],
+        "summary" : "Get a group object that aggregates all polymer entities associated with the specified UniProt ID or sequence cluster ID",
+        "operationId" : "getPolymerEntityGroupById",
+        "parameters" : [ {
+          "name" : "group_id",
+          "in" : "path",
+          "description" : "Group ID",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "Q3Y9I6"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GroupPolymerEntity"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          },
+          "400" : {
+            "description" : "Bad Request"
+          }
+        }
+      }
+    },
+    "/core/polymer_entity_instance/{entry_id}/{asym_id}" : {
+      "get" : {
+        "tags" : [ "Entity Instance Service" ],
+        "summary" : "Get polymer entity instance (a.k.a chain) data by ENTRY ID and ASYM ID (label_asym_id).",
+        "operationId" : "getPolymerEntityInstanceById",
+        "parameters" : [ {
+          "name" : "entry_id",
+          "in" : "path",
+          "description" : "ENTRY ID of the entry.",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "2FBW"
+          }
+        }, {
+          "name" : "asym_id",
+          "in" : "path",
+          "description" : "ASYM ID (label_asym_id) of the instance (chain).",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "E"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CorePolymerEntityInstance"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          }
+        }
+      }
+    },
+    "/core/pubmed/{entry_id}" : {
+      "get" : {
+        "tags" : [ "Entry Service" ],
+        "summary" : "Get PubMed annotations (data integrated from PubMed) for a given entry's primary citation.",
+        "operationId" : "getPubmedByEntryId",
+        "parameters" : [ {
+          "name" : "entry_id",
+          "in" : "path",
+          "description" : "ENTRY ID of the entry.",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "4ACQ"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CorePubmed"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          }
+        }
+      }
+    },
+    "/core/uniprot/{entry_id}/{entity_id}" : {
+      "get" : {
+        "tags" : [ "Entity Service" ],
+        "summary" : "Get UniProt annotations for a given macromolecular entity (identified by ENTRY ID and ENTITY ID).",
+        "operationId" : "getUniprotByEntityId",
+        "parameters" : [ {
+          "name" : "entry_id",
+          "in" : "path",
+          "description" : "ENTRY ID of the entry.",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "4G22"
+          }
+        }, {
+          "name" : "entity_id",
+          "in" : "path",
+          "description" : "ENTITY ID of the polymer entity.",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "1"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CoreUniprot"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          }
+        }
+      }
+    },
+    "/holdings/current/ccd_ids" : {
+      "get" : {
+        "tags" : [ "Repository Holdings Service" ],
+        "summary" : "Get the list of current CCD IDs.",
+        "operationId" : "getCurrentCcdIds",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          }
+        }
+      }
+    },
+    "/holdings/current/entry_ids" : {
+      "get" : {
+        "tags" : [ "Repository Holdings Service" ],
+        "summary" : "Get the list of current entry IDs.",
+        "operationId" : "getCurrentEntryIds",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          }
+        }
+      }
+    },
+    "/holdings/current/prd_ids" : {
+      "get" : {
+        "tags" : [ "Repository Holdings Service" ],
+        "summary" : "Get the list of current PRD IDs for BIRD entries.",
+        "operationId" : "getCurrentPrdIds",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          }
+        }
+      }
+    },
+    "/holdings/status/{entry_id}" : {
+      "get" : {
+        "tags" : [ "Repository Holdings Service" ],
+        "summary" : "Get the status and status code of a structure.",
+        "operationId" : "getEntryStatus",
+        "parameters" : [ {
+          "name" : "entry_id",
+          "in" : "path",
+          "description" : "ID of the entry that needs to be fetched.",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CombinedEntry"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          }
+        }
+      }
+    },
+    "/holdings/status" : {
+      "get" : {
+        "tags" : [ "Repository Holdings Service" ],
+        "summary" : "Get the status and status code of a list of entry IDs.",
+        "operationId" : "getEntryStatuses",
+        "parameters" : [ {
+          "name" : "ids",
+          "in" : "query",
+          "description" : "A comma separated entry ID list.",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CombinedEntry"
+                  }
+                }
+              }
+            }
+          },
+          "204" : {
+            "description" : "No Content.\n Request did not return any results."
+          },
+          "400" : {
+            "description" : "Bad Request.\n Parameter input is not valid."
+          },
+          "404" : {
+            "description" : "Not found.\n Requested resource was not found."
+          },
+          "500" : {
+            "description" : "Internal Server Error.\n Server encountered unexpected error."
+          }
+        }
+      }
+    },
+    "/holdings/removed/{entry_id}" : {
+      "get" : {
+        "tags" : [ "Repository Holdings Service" ],
+        "summary" : "Get the description of the structure that was removed from the PDB repository.",
+        "operationId" : "getRemovedEntryById",
+        "parameters" : [ {
+          "name" : "entry_id",
+          "in" : "path",
+          "description" : "ID of the entry that needs to be fetched.",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "example" : "1HHB"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RemovedEntry"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          }
+        }
+      }
+    },
+    "/holdings/removed/entry_ids" : {
+      "get" : {
+        "tags" : [ "Repository Holdings Service" ],
+        "summary" : "Get the list of removed entry IDs.",
+        "operationId" : "getRemovedEntryIds",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          }
+        }
+      }
+    },
+    "/holdings/unreleased" : {
+      "get" : {
+        "tags" : [ "Repository Holdings Service" ],
+        "summary" : "Get a list of unreleased structures with descriptions.",
+        "operationId" : "getUnreleasedEntries",
+        "parameters" : [ {
+          "name" : "ids",
+          "in" : "query",
+          "description" : "A comma separated unreleased entry ID list.",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/UnreleasedEntry"
+                  }
+                }
+              }
+            }
+          },
+          "204" : {
+            "description" : "No Content.\n Request did not return any results."
+          },
+          "400" : {
+            "description" : "Bad Request.\n Parameter input is not valid."
+          },
+          "404" : {
+            "description" : "Not found.\n Requested resource was not found."
+          },
+          "500" : {
+            "description" : "Internal Server Error.\n Server encountered unexpected error."
+          }
+        }
+      }
+    },
+    "/holdings/unreleased/{entry_id}" : {
+      "get" : {
+        "tags" : [ "Repository Holdings Service" ],
+        "summary" : "Get the description of unreleased structure that is being processed or on hold waiting for release.",
+        "operationId" : "getUnreleasedEntryById",
+        "parameters" : [ {
+          "name" : "entry_id",
+          "in" : "path",
+          "description" : "ID of the entry that needs to be fetched.",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UnreleasedEntry"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          }
+        }
+      }
+    },
+    "/holdings/unreleased/entry_ids" : {
+      "get" : {
+        "tags" : [ "Repository Holdings Service" ],
+        "summary" : "Get the list of unreleased entry IDs.",
+        "operationId" : "getUnreleasedEntryIds",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=utf-8" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          }
+        }
+      }
+    },
+    "/schema/assembly" : {
+      "get" : {
+        "tags" : [ "Schema Service" ],
+        "summary" : "Get assembly schema.",
+        "operationId" : "getAssemblyMetadata",

@@ -3,3 +3,7 @@ __pycache__/
 .venv/
 node_modules/
 .cursor/
+scripts/nersc_config.sh
+nersc/logs/*.out
+nersc/logs/*.err
+nersc/.job_*.sbatch

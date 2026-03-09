@@ -18,6 +18,12 @@ from openmmforcefields.generators import GAFFTemplateGenerator
 import requests
 import urllib.parse
 import sys
+import pathlib
+
+def load_config():
+    cfg_path = pathlib.Path(__file__).resolve().parent / "config.json"
+    with open(cfg_path) as f:
+        return json.load(f)
 
 def get_non_water_atom_indexes(topology):
     return np.array([a.index for a in topology.atoms() if a.residue.name != 'HOH'])
@@ -156,7 +162,7 @@ def add_ff_template_generator_from_smiles(forcefield, small_molecules_smiles, ca
 
     print(f"Added {len(small_molecules)} small molecule templates to forcefield")
 
-def prepare_protein(pdbid=str):
+def prepare_protein(pdbid: str):
     print(f"Preprocess of {pdbid}")
     create_folder(f"{pdbid}_WP")
     pdb_path = f"{pdbid}_WP/raw/{pdbid}.pdb"
@@ -196,7 +202,12 @@ def prepare_protein(pdbid=str):
     fixer.findMissingAtoms()
     fixer.addMissingAtoms()
 
-    ph = 7.0
+    cfg = load_config()
+    preproc = cfg.get("preprocessing", {})
+    ph = preproc.get("ph", 7.0)
+    padding_nm = preproc.get("padding_nm", 1.0)
+    ionic_strength = preproc.get("ionic_strength_M", 0.15)
+
     fixer.addMissingHydrogens(ph)
 
     modeller = app.Modeller(fixer.topology, fixer.positions)
@@ -208,7 +219,7 @@ def prepare_protein(pdbid=str):
     print(f"Missing terminals: {fixer.missingTerminals}")
     print(f"Missing atoms: {fixer.missingAtoms}")
 
-    forcefield_configs = ["amber14-all.xml", "amber14/tip3pfb.xml"]
+    forcefield_configs = cfg.get("openmm", {}).get("forcefield", ["amber14-all.xml", "amber14/tip3pfb.xml"])
     json.dump(forcefield_configs, open(f"{pdbid}_WP/processed/forcefield.json", 'w', encoding='utf-8'))
 
     forcefield = app.ForceField(*forcefield_configs)
@@ -222,7 +233,7 @@ def prepare_protein(pdbid=str):
     if unmatched_residues:
         raise RuntimeError("Structure still contains unmatched residues after fixup: " + str(unmatched_residues))
 
-    modeller.addSolvent(forcefield, padding=1.0 * unit.nanometers, ionicStrength=0.15 * unit.molar)
+    modeller.addSolvent(forcefield, padding=padding_nm * unit.nanometers, ionicStrength=ionic_strength * unit.molar)
 
     top = modeller.getTopology()
     pos = modeller.getPositions()
@@ -237,9 +248,15 @@ def prepare_protein(pdbid=str):
     pdb_bonds = [len([*i.bonds()]) for i in pdb.topology.residues() if i.name == 'UNK']
     assert pdb_bonds == top_bonds
 
+def validate_pdb_id(pdbid: str) -> None:
+    if not pdbid or len(pdbid) != 4 or not pdbid.isalnum():
+        raise ValueError("PDB ID must be exactly 4 alphanumeric characters")
+
+
 if __name__ == "__main__":
-   if len(sys.argv) != 2:
-       print("Error. usage: ./preprocess_pdb.py PDB_ID")
-       sys.exit(1)
-   else:
-       prepare_protein(sys.argv[1])
+    if len(sys.argv) != 2:
+        print("Error. usage: ./preprocess_pdb.py PDB_ID")
+        sys.exit(1)
+    pdbid = sys.argv[1]
+    validate_pdb_id(pdbid)
+    prepare_protein(pdbid)

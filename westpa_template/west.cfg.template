@@ -2,18 +2,18 @@ west:
   system:
     driver: westpa.core.systems.WESTSystem
     system_options:
-      pcoord_ndim: 1
-      pcoord_len: 11
+      pcoord_ndim: {{PCOORD_NDIM}}
+      pcoord_len: {{PCOORD_LEN}}
       pcoord_dtype: !!python/name:numpy.float32
       bins:
           type: MABBinMapper
-          nbins: [9]       
+          nbins: [{{NBINS}}]       
           mab_log: true
-      bin_target_counts: 6
+      bin_target_counts: {{BIN_TARGET_COUNTS}}
  
   propagation:
-    max_total_iterations: 12500
-    max_run_wallclock:    72:00:00
+    max_total_iterations: {{TARGET_ITERATIONS}}
+    max_run_wallclock:    {{MAX_RUN_WALLCLOCK}}
     propagator:           openmm_explicit_rmsd_p_ca_propagator.OpenMMExplicitPropagator
     gen_istates:          false
     block_size:           1
@@ -29,18 +29,18 @@ west:
       initial_state: $WEST_SIM_ROOT/istates/{initial_state.iter_created}/{initial_state.state_id}.xml
 
   openmm:
-    topology_path: /global/cfs/cdirs/m4229/caden/westpa_dna_protein/{{PDB_ID}}_WP/processed/{{PDB_ID}}_processed.pdb
-    num_gpus: 1                
-    gpu_precision: mixed 
+    topology_path: {{PROJECT_DIR}}/{{PDB_ID}}_WP/processed/{{PDB_ID}}_processed.pdb
+    num_gpus: {{NUM_GPUS}}                
+    gpu_precision: {{GPU_PRECISION}} 
     forcefield:
-      - amber14-all.xml
-      - amber14/tip3pfb.xml
-    temperature: 300.0           # K
-    timestep: 4.0                # fs
-    friction: 1.0                # 1/ps
-    pressure: 1.0                # atm
-    barostatInterval: 25
-    constraintTolerance: 1e-6
-    hydrogenMass: 1.5            # amu
-    steps: 1000
-    save_steps: 100
+      - {{FF_0}}
+      - {{FF_1}}
+    temperature: {{TEMPERATURE}}           # K
+    timestep: {{TIMESTEP}}                # fs
+    friction: {{FRICTION}}                # 1/ps
+    pressure: {{PRESSURE}}                # atm
+    barostatInterval: {{BAROSTAT_INTERVAL}}
+    constraintTolerance: {{CONSTRAINT_TOLERANCE}}
+    hydrogenMass: {{HYDROGEN_MASS}}            # amu
+    steps: {{STEPS}}
+    save_steps: {{SAVE_STEPS}}

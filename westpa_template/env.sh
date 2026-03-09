@@ -4,6 +4,11 @@ module load cudatoolkit
 
 export TMPDIR=$PSCRATCH
 mkdir -p $TMPDIR
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="{{REPO_DIR}}"
+WESTPA_PREFIX=$(python3 "$REPO_DIR/read_config.py" paths.westpa_env_prefix 2>/dev/null || echo "/global/cfs/cdirs/m4229/caden/micromamba_root/envs/westpa_env")
+
 export MAMBA_EXE='/global/homes/c/cawrober/micromamba/micromamba'
 export MAMBA_ROOT_PREFIX='/global/homes/c/cawrober/micromamba'
 __mamba_setup="$("$MAMBA_EXE" shell hook --shell bash --root-prefix "$MAMBA_ROOT_PREFIX" 2> /dev/null)"
@@ -13,7 +18,7 @@ else
     alias micromamba="$MAMBA_EXE"
 fi
 unset __mamba_setup
-micromamba activate --prefix /global/cfs/cdirs/m4229/caden/micromamba_root/envs/westpa_env
+micromamba activate --prefix "$WESTPA_PREFIX"
 
 export HDF5_USE_FILE_LOCKING=0
 export MPI=1

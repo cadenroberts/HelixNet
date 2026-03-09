@@ -3,3 +3,13 @@ __pycache__/
 .venv/
 node_modules/
 .cursor/
+.streamlit/
+scripts/nersc_config.sh
+nersc/logs/*.out
+nersc/logs/*.err
+nersc/.job_*.sbatch
+config.json
+pdb_ids.json
+pdb_search_results.json
+*_WP/
+out/

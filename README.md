@@ -67,6 +67,9 @@ Edit `config.json` and set at minimum:
 
 # NERSC end-to-end flow
 ./test.sh e2e [PDB_ID]
+
+# Python test suite (single file)
+python -m pytest tests/test.py -v
 ```
 
 ## How it works
@@ -93,6 +96,7 @@ test.sh
 config.example.json
 westpa_template/
 tests/
+  test.py
 ```
 
 ## Troubleshooting

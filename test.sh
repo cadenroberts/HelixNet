@@ -3,14 +3,13 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RUN_SH="$SCRIPT_DIR/run.sh"
-BENCHMARK="$SCRIPT_DIR/benchmark.py"
 
 usage() {
   cat <<'EOF'
 Usage: ./test.sh <command> [args]
 
 Commands:
-  mock             Local mock test for batch/run flow
+  mock             Local mock test for run flow
   e2e [PDB_ID]     NERSC SSH E2E pipeline test (default PDB_ID: 1JEY)
 EOF
 }

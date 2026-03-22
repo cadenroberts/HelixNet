@@ -6,34 +6,29 @@ The system coordinates large-scale simulation jobs on NERSC A100 nodes, enabling
 
 ## System Overview
 
-HelixNet operates as a distributed simulation pipeline:
+HelixNet operates as a distributed, GPU-backed simulation pipeline:
 
-1. Configuration - defines simulation parameters, input structures, and sampling strategy
-2. Orchestration - distributes jobs across GPU nodes using Slurm
-3. Execution - runs WESTPA/OpenMM simulations concurrently
-4. Aggregation - collects outputs across workers
-5. Analysis - processes simulation results for downstream evaluation
+- Configuration — defines simulation parameters, input structures, and sampling strategy
+- Orchestration — schedules and distributes jobs across GPU nodes via Slurm
+- Execution — runs WESTPA/OpenMM simulations concurrently across workers
+- Aggregation — collects outputs from distributed simulations
+- Analysis — processes results for downstream evaluation
 
-The system is designed to scale across multi-node GPU environments while managing job scheduling, resource utilization, and simulation consistency.
+The system is designed to scale across multi-node GPU environments while managing scheduling constraints, resource contention, and simulation consistency.
 
 ## Architecture
 
 ```text
 Input Config
-    |
-    v
+     ↓
 Slurm Scheduler
-    |
-    v
-Distributed Workers (A100 nodes)
-    |
-    v
+     ↓
+Distributed GPU Workers (NERSC A100)
+     ↓
 WESTPA / OpenMM Execution
-    |
-    v
+     ↓
 Output Aggregation
-    |
-    v
+     ↓
 Analysis Pipeline
 ```
 
@@ -45,9 +40,17 @@ Analysis Pipeline
 - Support for parameter sweeps and ensemble sampling
 - Designed for high-throughput molecular simulation workloads
 
+## System Constraints
+
+- HPC scheduling latency (Slurm queue delays and resource availability)
+- GPU resource contention across concurrent simulation jobs
+- Distributed synchronization across simulation workers
+- Large-scale output management and aggregation
+- Environment consistency across nodes (micromamba / WESTPA setups)
+
 ## Why This Matters
 
-Molecular simulations require significant compute and careful orchestration across distributed resources. HelixNet explores how to structure and scale simulation pipelines across GPU clusters, addressing scheduling, concurrency, and reproducibility challenges in HPC environments.
+Molecular simulations require significant compute and careful orchestration across distributed GPU resources. HelixNet explores how to structure and scale simulation pipelines across HPC clusters, addressing challenges in scheduling, concurrency, and reproducibility under real-world constraints.
 
 ## Entrypoints
 

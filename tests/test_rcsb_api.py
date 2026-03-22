@@ -1,4 +1,4 @@
-"""Tests for RCSB API functions in app.py.
+"""Tests for RCSB API functions in benchmark.py.
 
 Live integration tests hit the real RCSB API.
 Mocked tests verify error handling for all documented status codes.
@@ -23,7 +23,7 @@ def _import_app(monkeypatch):
     st.warning = lambda *a, **k: None
     st.success = lambda *a, **k: None
     monkeypatch.setitem(sys.modules, "streamlit", st)
-    import app as _app
+    import benchmark as _app
     importlib.reload(_app)
     return _app
 

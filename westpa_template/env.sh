@@ -7,7 +7,7 @@ mkdir -p $TMPDIR
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="{{REPO_DIR}}"
-WESTPA_PREFIX=$(python3 "$REPO_DIR/read_config.py" paths.westpa_env_prefix 2>/dev/null || echo "/global/cfs/cdirs/m4229/caden/micromamba_root/envs/westpa_env")
+WESTPA_PREFIX=$(python3 "$REPO_DIR/benchmark.py" read-config paths.westpa_env_prefix 2>/dev/null || echo "/global/cfs/cdirs/m4229/caden/micromamba_root/envs/westpa_env")
 
 export MAMBA_EXE='/global/homes/c/cawrober/micromamba/micromamba'
 export MAMBA_ROOT_PREFIX='/global/homes/c/cawrober/micromamba'

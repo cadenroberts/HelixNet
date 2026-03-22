@@ -20,7 +20,7 @@ def _import_app(monkeypatch):
     st.warning = lambda *a, **k: None
     st.success = lambda *a, **k: None
     monkeypatch.setitem(sys.modules, "streamlit", st)
-    import app as _app
+    import benchmark as _app
     importlib.reload(_app)
     return _app
 
@@ -115,9 +115,9 @@ class TestRunScript:
         placeholder = MagicMock()
         placeholder.code = MagicMock()
 
-        result = app.run_script(sample_config, "batch_wp.sh", placeholder)
+        result = app.run_script(sample_config, "./run.sh batch", placeholder)
 
-        expected_cmd = f"cd /tmp/helixnet_test && bash batch_wp.sh"
+        expected_cmd = 'cd /tmp/helixnet_test && bash -lc "./run.sh batch"'
         mock_client.exec_command.assert_called_once_with(expected_cmd, get_pty=True)
         assert "line1" in result
         assert "line2" in result
@@ -144,7 +144,7 @@ class TestRunScript:
         monkeypatch.setattr(app, "_get_ssh_client", lambda cfg: None)
 
         placeholder = MagicMock()
-        result = app.run_script(sample_config, "batch_wp.sh", placeholder)
+        result = app.run_script(sample_config, "./run.sh batch", placeholder)
         assert result == ""
 
 

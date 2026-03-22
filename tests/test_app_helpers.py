@@ -1,4 +1,4 @@
-"""Tests for app.py helper functions (no Streamlit UI)."""
+"""Tests for benchmark.py helper functions (no Streamlit UI)."""
 
 import importlib
 import json
@@ -17,7 +17,7 @@ def _import_app(monkeypatch):
     st.warning = lambda *a, **k: None
     st.success = lambda *a, **k: None
     monkeypatch.setitem(sys.modules, "streamlit", st)
-    import app as _app
+    import benchmark as _app
     importlib.reload(_app)
     return _app
 

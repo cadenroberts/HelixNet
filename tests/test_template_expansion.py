@@ -1,6 +1,6 @@
 """Tests for WESTPA template expansion.
 
-Runs the same sed commands that setup_wp.sh uses to expand templates,
+Runs the same sed commands that run.sh setup uses to expand templates,
 then verifies all {{PLACEHOLDER}} tokens are replaced with config values.
 """
 
@@ -20,7 +20,7 @@ PLACEHOLDER_RE = re.compile(r"\{\{[A-Z_]+\}\}")
 
 @pytest.fixture
 def expanded_files(tmp_dir, sample_config):
-    """Expand all templates using the same sed logic as setup_wp.sh."""
+    """Expand all templates using the same sed logic as run.sh setup."""
     cfg = sample_config
     pdb_id = "1XYZ"
     out_dir = str(tmp_dir / "out")

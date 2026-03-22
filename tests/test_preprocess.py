@@ -1,8 +1,4 @@
-"""Tests for preprocess_pdb.py functions.
-
-The module imports openmm/pdbfixer/rdkit at top level, so the entire test file
-is skipped when those packages are unavailable.
-"""
+"""Tests for benchmark.py preprocessing functions."""
 
 import json
 import os
@@ -11,13 +7,18 @@ import sys
 import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+import benchmark
 
-try:
-    import preprocess_pdb
-    HAS_DEPS = True
-except ImportError:
-    HAS_DEPS = False
 
+def _has_preprocess_deps() -> bool:
+    try:
+        benchmark._import_preprocess_deps()
+        return True
+    except Exception:
+        return False
+
+
+HAS_DEPS = _has_preprocess_deps()
 pytestmark = pytest.mark.skipif(not HAS_DEPS, reason="openmm/pdbfixer/rdkit not installed")
 
 
@@ -29,36 +30,36 @@ def _skip_if_no_deps():
 
 class TestValidatePdbId:
     def test_valid_4char(self):
-        preprocess_pdb.validate_pdb_id("1ABC")
+        benchmark.validate_pdb_id("1ABC")
 
     def test_valid_lowercase(self):
-        preprocess_pdb.validate_pdb_id("1abc")
+        benchmark.validate_pdb_id("1abc")
 
     def test_valid_mixed(self):
-        preprocess_pdb.validate_pdb_id("1L2Y")
+        benchmark.validate_pdb_id("1L2Y")
 
     def test_empty_raises(self):
         with pytest.raises(ValueError):
-            preprocess_pdb.validate_pdb_id("")
+            benchmark.validate_pdb_id("")
 
     def test_too_short(self):
         with pytest.raises(ValueError):
-            preprocess_pdb.validate_pdb_id("1AB")
+            benchmark.validate_pdb_id("1AB")
 
     def test_too_long(self):
         with pytest.raises(ValueError):
-            preprocess_pdb.validate_pdb_id("1ABCD")
+            benchmark.validate_pdb_id("1ABCD")
 
     def test_special_chars(self):
         with pytest.raises(ValueError):
-            preprocess_pdb.validate_pdb_id("1A-C")
+            benchmark.validate_pdb_id("1A-C")
 
 
 class TestCreateFolder:
     def test_creates_structure(self, tmp_dir):
         os.chdir(tmp_dir)
         folder = str(tmp_dir / "TEST_WP")
-        preprocess_pdb.create_folder(folder)
+        benchmark.create_folder(folder)
         assert os.path.isdir(folder)
         assert os.path.isdir(os.path.join(folder, "raw"))
         assert os.path.isdir(os.path.join(folder, "processed"))
@@ -66,28 +67,28 @@ class TestCreateFolder:
     def test_existing_folder_no_error(self, tmp_dir):
         folder = str(tmp_dir / "TEST_WP")
         os.makedirs(folder)
-        preprocess_pdb.create_folder(folder)
+        benchmark.create_folder(folder)
 
 
 class TestGetRcsbLigandSmiles:
     def test_known_ligand(self):
-        smiles = preprocess_pdb.get_rcsb_ligand_smiles("ATP")
+        smiles = benchmark.get_rcsb_ligand_smiles("ATP")
         assert smiles is not None
         assert isinstance(smiles, str)
         assert len(smiles) > 5
 
     def test_invalid_comp_id(self):
-        result = preprocess_pdb.get_rcsb_ligand_smiles("XX")
+        result = benchmark.get_rcsb_ligand_smiles("XX")
         assert result is None
 
     def test_nonexistent_comp_id(self):
-        result = preprocess_pdb.get_rcsb_ligand_smiles("ZZZ")
+        result = benchmark.get_rcsb_ligand_smiles("ZZZ")
         assert result is None or isinstance(result, str)
 
 
 class TestLoadConfig:
     def test_loads_from_env_dir(self, config_env):
-        cfg = preprocess_pdb.load_config()
+        cfg = benchmark.load_runtime_config()
         assert cfg["execution"]["nersc_user"] == "testuser"
 
 
@@ -98,7 +99,7 @@ class TestPrepareProtein:
         with open(config_env / "config.json", "w") as f:
             json.dump(sample_config, f)
 
-        preprocess_pdb.prepare_protein("1L2Y")
+        benchmark.prepare_protein("1L2Y")
 
         wp_dir = tmp_dir / "1L2Y_WP"
         assert (wp_dir / "raw" / "1L2Y.pdb").exists()

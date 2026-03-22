@@ -1,4 +1,4 @@
-"""Tests for config loading/saving and read_config.py CLI."""
+"""Tests for config loading/saving and benchmark.py CLI."""
 
 import json
 import subprocess
@@ -10,7 +10,7 @@ from tests.conftest import REPO_ROOT
 
 
 def _import_app(monkeypatch):
-    """Import app module with streamlit stubbed out."""
+    """Import benchmark module with streamlit stubbed out."""
     import types
 
     st = types.ModuleType("streamlit")
@@ -20,7 +20,7 @@ def _import_app(monkeypatch):
     monkeypatch.setitem(sys.modules, "streamlit", st)
 
     import importlib
-    import app as _app
+    import benchmark as _app
 
     importlib.reload(_app)
     return _app
@@ -94,7 +94,7 @@ class TestPdbIds:
 class TestReadConfigCLI:
     def test_simple_key(self, config_env):
         result = subprocess.run(
-            [sys.executable, str(REPO_ROOT / "read_config.py"), "execution.nersc_user"],
+            [sys.executable, str(REPO_ROOT / "benchmark.py"), "read-config", "execution.nersc_user"],
             capture_output=True,
             text=True,
             env={**dict(__import__("os").environ), "HELIXNET_CONFIG_DIR": str(config_env)},
@@ -104,7 +104,7 @@ class TestReadConfigCLI:
 
     def test_nested_key(self, config_env):
         result = subprocess.run(
-            [sys.executable, str(REPO_ROOT / "read_config.py"), "slurm.account"],
+            [sys.executable, str(REPO_ROOT / "benchmark.py"), "read-config", "slurm.account"],
             capture_output=True,
             text=True,
             env={**dict(__import__("os").environ), "HELIXNET_CONFIG_DIR": str(config_env)},
@@ -114,7 +114,7 @@ class TestReadConfigCLI:
 
     def test_json_value(self, config_env):
         result = subprocess.run(
-            [sys.executable, str(REPO_ROOT / "read_config.py"), "openmm.forcefield"],
+            [sys.executable, str(REPO_ROOT / "benchmark.py"), "read-config", "openmm.forcefield"],
             capture_output=True,
             text=True,
             env={**dict(__import__("os").environ), "HELIXNET_CONFIG_DIR": str(config_env)},
@@ -125,7 +125,7 @@ class TestReadConfigCLI:
 
     def test_missing_key_fails(self, config_env):
         result = subprocess.run(
-            [sys.executable, str(REPO_ROOT / "read_config.py"), "nonexistent.key"],
+            [sys.executable, str(REPO_ROOT / "benchmark.py"), "read-config", "nonexistent.key"],
             capture_output=True,
             text=True,
             env={**dict(__import__("os").environ), "HELIXNET_CONFIG_DIR": str(config_env)},

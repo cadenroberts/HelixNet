@@ -67,7 +67,7 @@ Edit `config.json` with your values. The only required change for a first run is
 ### 3. Launch the UI
 
 ```bash
-./run_ui.sh
+./run.sh ui
 ```
 
 This creates a `.venv`, installs `streamlit`, `paramiko`, and `requests`, then opens the UI in your browser.
@@ -76,20 +76,20 @@ This creates a `.venv`, installs `streamlit`, `paramiko`, and `requests`, then o
 
 ```bash
 # Single target
-./setup_wp.sh 1ABC
+./run.sh setup 1ABC
 
 # Batch from pdb_ids.json
-./batch_wp.sh
+./run.sh batch
 
 # Monitor and resubmit
-./run_wp.sh
+./run.sh run
 ```
 
 ---
 
 ## Configuration reference
 
-All parameters live in `config.json`. The UI edits this file directly. Shell scripts read it via `read_config.py`.
+All parameters live in `config.json`. The UI edits this file directly. Shell scripts read it via `benchmark.py read-config`.
 
 | Section | Key | Default | Description |
 |---------|-----|---------|-------------|
@@ -131,13 +131,13 @@ Mode is auto-detected from hostname:
 
 **SSH mode** (running from your laptop):
 ```bash
-./run_ui.sh
+./run.sh ui
 # UI opens in browser, all pipeline commands execute over SSH
 ```
 
 **Local mode** (running on a NERSC login node):
 ```bash
-streamlit run app.py --server.port 8501
+streamlit run benchmark.py --server.port 8501
 # On your laptop, forward the port:
 ssh -L 8501:localhost:8501 <user>@perlmutter.nersc.gov
 ```
@@ -159,7 +159,7 @@ Results are saved to `pdb_ids.json`.
 
 ### Step 2: Preprocess
 
-For each PDB ID, `preprocess_pdb.py`:
+For each PDB ID, `benchmark.py preprocess`:
 
 1. Downloads the PDB from RCSB
 2. Repairs with PDBFixer (missing residues, atoms, hydrogens)
@@ -170,7 +170,7 @@ For each PDB ID, `preprocess_pdb.py`:
 
 ### Step 3: WESTPA setup
 
-`setup_wp.sh` expands templates from `westpa_template/` using config values:
+`run.sh setup` expands templates from `westpa_template/` using config values:
 
 | Template | Output | Placeholders |
 |----------|--------|--------------|
@@ -183,7 +183,7 @@ Then runs `w_init --bstate-file b.txt` to initialize the WESTPA HDF5 file.
 
 ### Step 4: Run simulations
 
-`batch_wp.sh` processes all IDs in `pdb_ids.json`, then calls `run_wp.sh` which:
+`run.sh batch` processes all IDs in `pdb_ids.json`, then calls `run.sh run` which:
 
 1. Reads `west.h5` iteration count via `h5ls`
 2. Compares against `westpa.target_iterations`
@@ -192,7 +192,7 @@ Then runs `w_init --bstate-file b.txt` to initialize the WESTPA HDF5 file.
 
 ### Step 5: Monitor
 
-Use the **Status** tab in the UI, or run `./run_wp.sh` directly.
+Use the **Status** tab in the UI, or run `./run.sh run` directly.
 
 ---
 
@@ -248,14 +248,14 @@ python -m pytest tests/ -v
 
 | File | What it tests |
 |------|---------------|
-| `tests/test_config.py` | Config load/save, `read_config.py` CLI, PDB ID persistence |
+| `tests/test_config.py` | Config load/save, `benchmark.py read-config` CLI, PDB ID persistence |
 | `tests/test_app_helpers.py` | Execution mode detection, ANSI stripping, payload builder, credential gate |
 | `tests/test_rcsb_api.py` | Live RCSB API calls (search, suggest, unreleased, metadata) + mocked error paths |
 | `tests/test_preprocess.py` | PDB ID validation, folder creation, ligand SMILES lookup, full preprocessing (requires openmm) |
 | `tests/test_propagator.py` | RMSD progress coordinate, solute index extraction, DCD I/O (requires mdtraj) |
 | `tests/test_nersc_launch.py` | SSH client (mocked paramiko), `run_script` dispatch, `scan_wp_dirs` |
 | `tests/test_template_expansion.py` | Template sed expansion, placeholder verification, bash syntax |
-| `tests/test_shell_scripts.py` | `bash -n` on all scripts, `test_wp.sh` execution, `test_pipeline.sh` structure |
+| `tests/test_shell_scripts.py` | `bash -n` on consolidated scripts, `test.sh mock` execution, `test.sh e2e` structure |
 
 Tests requiring `openmm` or `mdtraj` are automatically skipped when those packages are not installed.
 
@@ -263,7 +263,7 @@ Tests requiring `openmm` or `mdtraj` are automatically skipped when those packag
 
 ```bash
 # Requires SSH access and sshproxy cert
-./test_pipeline.sh [PDB_ID]
+./test.sh e2e [PDB_ID]
 ```
 
 Runs 6 stages: RCSB API search, preprocessing, WESTPA setup, sbatch, iteration polling, output validation. Default PDB: `1JEY`.
@@ -271,10 +271,10 @@ Runs 6 stages: RCSB API search, preprocessing, WESTPA setup, sbatch, iteration p
 ### Local mock test
 
 ```bash
-./test_wp.sh
+./test.sh mock
 ```
 
-Runs `batch_wp.sh` and `run_wp.sh` with mocked `h5ls`, `squeue`, and `sbatch` in a temp directory.
+Runs `run.sh batch` and `run.sh run` with mocked `h5ls`, `squeue`, and `sbatch` in a temp directory.
 
 ---
 
@@ -282,17 +282,11 @@ Runs `batch_wp.sh` and `run_wp.sh` with mocked `h5ls`, `squeue`, and `sbatch` in
 
 ```
 HelixNet/
-  app.py                    Streamlit UI
-  preprocess_pdb.py         PDB download, repair, solvation
-  read_config.py            Config reader for shell scripts
+  benchmark.py              Unified UI + preprocess + config CLI
   config.example.json       Example configuration
   requirements.txt          Python dependencies
-  run_ui.sh                 UI launcher (creates venv)
-  setup_wp.sh               Per-target WESTPA setup
-  batch_wp.sh               Batch setup from pdb_ids.json
-  run_wp.sh                 Iteration monitor and resubmit
-  test_wp.sh                Local mock test
-  test_pipeline.sh          E2E NERSC test
+  run.sh                    Unified runtime entrypoint
+  test.sh                   Unified testing entrypoint
   pytest.ini                Test configuration
   westpa_template/
     west.cfg.template       WESTPA config template
@@ -300,8 +294,6 @@ HelixNet/
     b.txt.template          Basis states template
     env.sh                  NERSC environment setup
     openmm_explicit_rmsd_p_ca_propagator.py
-  scripts/
-    demo.sh                 CI smoke test
   tests/
     conftest.py             Shared fixtures
     test_*.py               Test modules

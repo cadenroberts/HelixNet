@@ -40,17 +40,25 @@ Analysis Pipeline
 - Support for parameter sweeps and ensemble sampling
 - Designed for high-throughput molecular simulation workloads
 
-## System Constraints
+## Key Challenges
 
-- HPC scheduling latency (Slurm queue delays and resource availability)
-- GPU resource contention across concurrent simulation jobs
-- Distributed synchronization across simulation workers
-- Large-scale output management and aggregation
+- Efficiently scheduling large numbers of jobs under Slurm constraints
+- Managing GPU utilization vs queue latency in shared HPC environments
+- Handling partial failures and resubmission of long-running simulations
+- Coordinating parameter sweeps across distributed nodes
 - Environment consistency across nodes (micromamba / WESTPA setups)
 
-## Why This Matters
+## Design Decisions
 
-Molecular simulations require significant compute and careful orchestration across distributed GPU resources. HelixNet explores how to structure and scale simulation pipelines across HPC clusters, addressing challenges in scheduling, concurrency, and reproducibility under real-world constraints.
+- Used **Slurm** for cluster-native scheduling and resource allocation
+- Structured workflows as **independent simulation units** for scalability
+- Implemented **monitor + resubmit loop** to handle incomplete runs
+
+## Tradeoffs
+
+- Higher concurrency → improved throughput but increased scheduling contention
+- Larger batch submissions → better utilization but longer queue delays
+- Distributed execution → faster overall runtime but more complex coordination
 
 ## Entrypoints
 

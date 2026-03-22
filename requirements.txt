@@ -1,3 +1,6 @@
 streamlit
 paramiko
 requests
+pytest
+pytest-mock
+responses

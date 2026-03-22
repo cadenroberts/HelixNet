@@ -21,7 +21,8 @@ import sys
 import pathlib
 
 def load_config():
-    cfg_path = pathlib.Path(__file__).resolve().parent / "config.json"
+    config_dir = os.environ.get("HELIXNET_CONFIG_DIR", str(pathlib.Path(__file__).resolve().parent))
+    cfg_path = os.path.join(config_dir, "config.json")
     with open(cfg_path) as f:
         return json.load(f)
 

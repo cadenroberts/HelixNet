@@ -31,13 +31,29 @@ jobs:
           rdkit \
           openff-toolkit \
           openmmforcefields \
+          mdtraj \
           numpy \
           requests
+        pip install pytest pytest-mock responses paramiko streamlit
+    
+    - name: Shell script syntax check
+      run: |
+        for f in batch_wp.sh run_wp.sh setup_wp.sh run_ui.sh \
+                 test_wp.sh test_pipeline.sh scripts/demo.sh westpa_template/env.sh; do
+          echo "Checking $f..."
+          bash -n "$f"
+        done
+        echo "All shell scripts pass syntax check"
     
     - name: Run smoke test
       shell: bash -l {0}
       run: |
         ./scripts/demo.sh
+    
+    - name: Run pytest
+      shell: bash -l {0}
+      run: |
+        python -m pytest tests/ -v --tb=short
     
     - name: Verify smoke test passed
       shell: bash -l {0}

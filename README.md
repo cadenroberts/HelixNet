@@ -19,9 +19,7 @@ Simple WESTPA/OpenMM pipeline runner for DNA-protein systems on NERSC, with a St
 ## Quick start
 
 ```bash
-git clone <repo-url> HelixNet
-cd HelixNet
-cp config.example.json config.json
+git clone git@github.com:cadenroberts/HelixNet.git && cd HelixNet && cp config.example.json config.json
 ```
 
 Edit `config.json` and set at minimum:

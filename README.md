@@ -1,12 +1,59 @@
 # HelixNet
 
-Simple WESTPA/OpenMM pipeline runner for DNA-protein systems on NERSC, with a Streamlit UI.
+HelixNet is a distributed molecular simulation system for orchestrating WESTPA and OpenMM workloads across GPU clusters.
 
-## What this repo gives you
+The system coordinates large-scale simulation jobs on NERSC A100 nodes, enabling concurrent execution, parameter sweeps, and ensemble-based sampling under HPC constraints.
 
-- One runtime entrypoint: `run.sh`
-- One test entrypoint: `test.sh`
-- One Python entrypoint: `benchmark.py`
+## System Overview
+
+HelixNet operates as a distributed simulation pipeline:
+
+1. Configuration - defines simulation parameters, input structures, and sampling strategy
+2. Orchestration - distributes jobs across GPU nodes using Slurm
+3. Execution - runs WESTPA/OpenMM simulations concurrently
+4. Aggregation - collects outputs across workers
+5. Analysis - processes simulation results for downstream evaluation
+
+The system is designed to scale across multi-node GPU environments while managing job scheduling, resource utilization, and simulation consistency.
+
+## Architecture
+
+```text
+Input Config
+    |
+    v
+Slurm Scheduler
+    |
+    v
+Distributed Workers (A100 nodes)
+    |
+    v
+WESTPA / OpenMM Execution
+    |
+    v
+Output Aggregation
+    |
+    v
+Analysis Pipeline
+```
+
+## Key Properties
+
+- Distributed execution across GPU clusters (NERSC A100)
+- Slurm-based job orchestration
+- Concurrent simulation pipelines (50+ runs)
+- Support for parameter sweeps and ensemble sampling
+- Designed for high-throughput molecular simulation workloads
+
+## Why This Matters
+
+Molecular simulations require significant compute and careful orchestration across distributed resources. HelixNet explores how to structure and scale simulation pipelines across GPU clusters, addressing scheduling, concurrency, and reproducibility challenges in HPC environments.
+
+## Entrypoints
+
+- Runtime: `run.sh`
+- Testing: `test.sh`
+- Python app: `benchmark.py`
 
 ## Requirements
 
@@ -32,7 +79,7 @@ Edit `config.json` and set at minimum:
 - `paths.micromamba_prefix`
 - `paths.westpa_env_prefix`
 
-## Run commands
+## Run Commands
 
 ### UI
 
@@ -59,7 +106,7 @@ Edit `config.json` and set at minimum:
 ./run.sh demo
 ```
 
-## Test commands
+## Test Commands
 
 ```bash
 # Local mocked shell flow
@@ -72,7 +119,7 @@ Edit `config.json` and set at minimum:
 python -m pytest tests/test.py -v
 ```
 
-## How it works
+## Pipeline Commands
 
 - `benchmark.py read-config` reads values from `config.json`.
 - `run.sh setup`:

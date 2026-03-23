@@ -60,6 +60,20 @@ Analysis Pipeline
 - Larger batch submissions → better utilization but longer queue delays
 - Distributed execution → faster overall runtime but more complex coordination
 
+## Results
+
+- Executed 50+ concurrent simulations across NERSC A100 nodes
+- Achieved high-resolution (<2Å) structural analysis via progress-coordinate sampling
+- Automated setup, execution, monitoring, and resubmission across multi-node environments
+- Scaled parameter sweeps across distributed GPU workers without manual intervention
+
+## Failure Modes
+
+- Slurm job preemption causing partial simulation loss requiring resubmission
+- Environment drift across nodes when micromamba/WESTPA versions diverge
+- Long queue delays under high cluster utilization reducing effective throughput
+- Incomplete `west.h5` files from interrupted runs requiring checkpoint recovery
+
 ## Entrypoints
 
 - Runtime: `run.sh`

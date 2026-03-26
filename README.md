@@ -1,182 +1,73 @@
-# HelixNet
+# NERSC Distributed Molecular Simulation
 
-HelixNet is a distributed molecular simulation system for orchestrating WESTPA and OpenMM workloads across GPU clusters.
+Repository: [cadenroberts/nersc-distributed-molecular-simulation](https://github.com/cadenroberts/nersc-distributed-molecular-simulation).
 
-The system coordinates large-scale simulation jobs on NERSC A100 nodes, enabling concurrent execution, parameter sweeps, and ensemble-based sampling under HPC constraints.
+Distributed molecular simulation system for orchestrating WESTPA weighted ensemble sampling with OpenMM on GPU clusters. Automates PDB preprocessing, WESTPA workspace setup, Slurm job submission, and iteration monitoring across NERSC Perlmutter nodes.
 
-## System Overview
+Set `NDMS_CONFIG_DIR` to the directory containing `config.json` (legacy: `HELIXNET_CONFIG_DIR`).
 
-HelixNet operates as a distributed, GPU-backed simulation pipeline:
+## Files
 
-- Configuration — defines simulation parameters, input structures, and sampling strategy
-- Orchestration — schedules and distributes jobs across GPU nodes via Slurm
-- Execution — runs WESTPA/OpenMM simulations concurrently across workers
-- Aggregation — collects outputs from distributed simulations
-- Analysis — processes results for downstream evaluation
+| Path | Role |
+|------|------|
+| `benchmark.py` | CLI and Streamlit UI: config I/O, RCSB search, PDB preprocessing, SSH execution |
+| `run.sh` | Shell orchestrator: setup, run, batch-setup, batch, ui, demo |
+| `test.sh` | Test harness: local mock of Slurm flow, NERSC end-to-end |
+| `config.example.json` | Example runtime config (paths, Slurm, WESTPA, OpenMM, preprocessing) |
+| `requirements.txt` | Pip dependencies (Streamlit, Paramiko, Requests, Pytest, Responses) |
+| `pytest.ini` | Pytest config and marker definitions |
+| `.github/workflows/ci.yml` | GitHub Actions: conda install, syntax check, demo smoke test, pytest |
+| `tests/test.py` | Unit and integration tests |
+| `westpa_template/b.txt.template` | WESTPA basis state template |
+| `westpa_template/env.sh.template` | HPC environment bootstrap template |
+| `westpa_template/west.cfg.template` | WESTPA configuration template |
+| `westpa_template/run.slurm.template` | Slurm batch script template |
+| `westpa_template/openmm_explicit_rmsd_p_ca_propagator.py` | WESTPA/OpenMM propagator: explicit solvent, RMSD progress coordinate |
 
-The system is designed to scale across multi-node GPU environments while managing scheduling constraints, resource contention, and simulation consistency.
+## Entry Points
 
-## Architecture
+| Command | Description |
+|---------|-------------|
+| `./run.sh setup <PDB_ID>` | Preprocess PDB, expand templates, initialize WESTPA workspace |
+| `./run.sh run` | Scan `*_WP` dirs, submit/resubmit Slurm jobs until target iterations reached |
+| `./run.sh batch-setup` | Setup all PDB IDs from `pdb_ids.json` that lack a workspace |
+| `./run.sh batch` | batch-setup then run |
+| `./run.sh ui` | Launch Streamlit UI (`benchmark.py`) |
+| `./run.sh demo` | Local smoke test: preprocess 1L2Y, verify artifacts, cleanup |
+| `./test.sh mock` | Mock Slurm/HDF5 environment, exercise `run.sh run` |
+| `./test.sh e2e [PDB_ID]` | Full pipeline on NERSC via SSH |
+| `python3 benchmark.py read-config <key>` | Print config value by dot path |
+| `python3 benchmark.py preprocess <pdb_id>` | Run PDB preprocessing pipeline |
 
-```text
-Input Config
-     ↓
-Slurm Scheduler
-     ↓
-Distributed GPU Workers (NERSC A100)
-     ↓
-WESTPA / OpenMM Execution
-     ↓
-Output Aggregation
-     ↓
-Analysis Pipeline
-```
-
-## Key Properties
-
-- Distributed execution across GPU clusters (NERSC A100)
-- Slurm-based job orchestration
-- Concurrent simulation pipelines (50+ runs)
-- Support for parameter sweeps and ensemble sampling
-- Designed for high-throughput molecular simulation workloads
-
-## Key Challenges
-
-- Efficiently scheduling large numbers of jobs under Slurm constraints
-- Managing GPU utilization vs queue latency in shared HPC environments
-- Handling partial failures and resubmission of long-running simulations
-- Coordinating parameter sweeps across distributed nodes
-- Environment consistency across nodes (micromamba / WESTPA setups)
-
-## Design Decisions
-
-- Used **Slurm** for cluster-native scheduling and resource allocation
-- Structured workflows as **independent simulation units** for scalability
-- Implemented **monitor + resubmit loop** to handle incomplete runs
-
-## Tradeoffs
-
-- Higher concurrency → improved throughput but increased scheduling contention
-- Larger batch submissions → better utilization but longer queue delays
-- Distributed execution → faster overall runtime but more complex coordination
-
-## Results
-
-- Executed 50+ concurrent simulations across NERSC A100 nodes
-- Achieved high-resolution (<2Å) structural analysis via progress-coordinate sampling
-- Automated setup, execution, monitoring, and resubmission across multi-node environments
-- Scaled parameter sweeps across distributed GPU workers without manual intervention
-
-## Failure Modes
-
-- Slurm job preemption causing partial simulation loss requiring resubmission
-- Environment drift across nodes when micromamba/WESTPA versions diverge
-- Long queue delays under high cluster utilization reducing effective throughput
-- Incomplete `west.h5` files from interrupted runs requiring checkpoint recovery
-
-## Entrypoints
-
-- Runtime: `run.sh`
-- Testing: `test.sh`
-- Python app: `benchmark.py`
-
-## Requirements
-
-- Python 3.10+
-- Bash
-- NERSC access (for real runs)
-- Slurm tools on runtime host (`squeue`, `sbatch`)
-- WESTPA/OpenMM stack in configured micromamba envs
-
-## Quick start
+## Verification
 
 ```bash
-git clone <repo-url> HelixNet
-cd HelixNet
-cp config.example.json config.json
-```
-
-Edit `config.json` and set at minimum:
-
-- `execution.nersc_user`
-- `paths.project_dir`
-- `paths.out_dir`
-- `paths.micromamba_prefix`
-- `paths.westpa_env_prefix`
-
-## Run Commands
-
-### UI
-
-```bash
-./run.sh ui
-```
-
-### Headless
-
-```bash
-# Set up one target
-./run.sh setup 1ABC
-
-# Set up all IDs from pdb_ids.json then monitor
-./run.sh batch
-
-# Monitor and resubmit only
-./run.sh run
-```
-
-### Smoke check
-
-```bash
+bash -n run.sh test.sh
+python -m pytest tests/test.py -v --tb=short
 ./run.sh demo
 ```
 
-## Test Commands
+## Architecture
 
-```bash
-# Local mocked shell flow
-./test.sh mock
+```mermaid
+flowchart TD
+    Config["config.json"] --> RunSh["run.sh"]
+    RunSh -->|"setup"| Preprocess["benchmark.py preprocess"]
+    Preprocess -->|"download + fix PDB"| Templates["westpa_template/"]
+    Templates -->|"sed expand"| Workspace["PDB_WP/"]
+    Workspace --> WInit["w_init"]
+    WInit --> WestH5["west.h5"]
 
-# NERSC end-to-end flow
-./test.sh e2e [PDB_ID]
+    RunSh -->|"run"| Monitor["h5ls + squeue check"]
+    Monitor -->|"sbatch"| Slurm["Slurm scheduler"]
+    Slurm --> WRun["w_run --work-manager mpi"]
+    WRun --> Propagator["OpenMMExplicitPropagator"]
+    Propagator -->|"LangevinMiddleIntegrator + PME"| Segments["segment trajectories"]
+    Segments -->|"RMSD pcoord"| WestH5
 
-# Python test suite (single file)
-python -m pytest tests/test.py -v
+    RunSh -->|"ui"| Streamlit["Streamlit app"]
+    Streamlit --> Config
 ```
-
-## Pipeline Commands
-
-- `benchmark.py read-config` reads values from `config.json`.
-- `run.sh setup`:
-  - runs `benchmark.py preprocess <PDB_ID>`
-  - expands templates in `westpa_template/`
-  - runs `w_init`
-- `run.sh run`:
-  - checks each `*_WP/west.h5` iteration count
-  - submits `sbatch run.slurm` when target iterations not reached
-- `run.sh batch`:
-  - reads `pdb_ids.json`
-  - runs setup for missing targets
-  - runs monitor step
-
-## Minimal file map
-
-```text
-benchmark.py
-run.sh
-test.sh
-config.example.json
-westpa_template/
-tests/
-  test.py
-```
-
-## Troubleshooting
-
-- `run.sh ui` fails: remove `.venv` and retry.
-- `run.sh setup` fails: validate config paths and env activation.
-- `run.sh run` submits nothing: verify `west.h5`, `run.slurm`, and target iterations.
-- `test.sh e2e` fails: refresh SSH credentials and verify remote path.
 
 ## License
 

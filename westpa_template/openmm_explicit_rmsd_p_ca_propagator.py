@@ -1,11 +1,7 @@
-import sys
+import json
 from pathlib import Path
 
-project_root = Path(__file__).resolve().parents[1]
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
-
-from openmm.app import PME, HBonds, PDBFile, ForceField, Simulation, HBonds
+from openmm.app import PME, HBonds, PDBFile, ForceField, Simulation
 from openmm import MonteCarloBarostat, Platform, LangevinMiddleIntegrator, XmlSerializer
 from openmm.unit import atmospheres, kelvin, nanometer, picosecond, femtosecond, kilojoule_per_mole
 import mdtraj
@@ -89,7 +85,10 @@ class OpenMMPropagator(BasePropagator):
         super(OpenMMPropagator, self).__init__(rc)
     
     def _load_config(self):
-        config = self.rc.config['west']['openmm']
+        try:
+            config = self.rc.config['west']['openmm']
+        except KeyError as exc:
+            raise KeyError(f"Missing config section west.openmm: {exc}") from exc
         self.temperature = float(config.get('temperature', 300.0))
         self.timestep = float(config.get('timestep', 2.0))
         self.friction = float(config.get('friction', 1.0))
@@ -97,8 +96,11 @@ class OpenMMPropagator(BasePropagator):
         self.barostatInterval = int(config.get('barostatInterval', 25))
         self.constraintTolerance = float(config.get('constraintTolerance', 1e-6))
         self.hydrogenMass = float(config.get('hydrogenMass', 1.5))
-        self.steps = config['steps']
-        self.save_steps = config['save_steps']
+        for key in ('steps', 'save_steps', 'topology_path', 'forcefield'):
+            if key not in config:
+                raise KeyError(f"Required config key west.openmm.{key} is missing")
+        self.steps = int(config['steps'])
+        self.save_steps = int(config['save_steps'])
         self.save_format = self._get_save_format(['west', 'openmm'])
         
         try:
@@ -116,8 +118,35 @@ class OpenMMPropagator(BasePropagator):
         self.forcefield_files = config['forcefield']
         self.pdb = PDBFile(self.topology_path)
         self.forcefield = ForceField(*self.forcefield_files)
+        self._register_ligand_gaff()
         self.nonbondedMethod = None
     
+    def _register_ligand_gaff(self):
+        topo_dir = Path(self.topology_path).parent
+        pdb_stem = Path(self.topology_path).stem.replace("_processed", "")
+        smiles_path = topo_dir / f"{pdb_stem}_processed_ligands_smiles.json"
+        cache_path = topo_dir / f"{pdb_stem}_processed_ligands_cache.json"
+        if not smiles_path.exists():
+            return
+        try:
+            from rdkit import Chem
+            from openff.toolkit import Molecule
+            from openmmforcefields.generators import GAFFTemplateGenerator
+        except ImportError:
+            print(f"WARNING: ligand SMILES found at {smiles_path} but rdkit/openff/openmmforcefields not available")
+            return
+        with open(smiles_path) as f:
+            smiles_list = json.load(f)
+        molecules = []
+        for smi in smiles_list:
+            template = Chem.MolFromSmiles(smi)
+            if template is None:
+                continue
+            molecules.append(Molecule.from_rdkit(template, allow_undefined_stereo=True))
+        cache = str(cache_path) if cache_path.exists() else None
+        gaff = GAFFTemplateGenerator(molecules=molecules, cache=cache)
+        self.forcefield.registerTemplateGenerator(gaff.generator)
+
     def _get_pcoord_config(self):
         return None
     
@@ -198,7 +227,10 @@ class OpenMMPropagator(BasePropagator):
         times, forces, energy_k, energy_u = [], [], [], []
         positions_list = []
         
-        assert self.steps % self.save_steps == 0
+        if self.steps % self.save_steps != 0:
+            raise ValueError(
+                f"steps ({self.steps}) must be divisible by save_steps ({self.save_steps})"
+            )
         
         for i in range(self.steps // self.save_steps):
             simulation.step(self.save_steps)
@@ -226,10 +258,12 @@ class OpenMMPropagator(BasePropagator):
         raise NotImplementedError
     
     def propagate(self, segments):
-        starttime = time.time()
+        batch_start = time.time()
         simulation = self._create_simulation(segments[0].seg_id)
         
         for segment in segments:
+            starttime = time.time()
+            simulation.integrator.setRandomNumberSeed(random.randint(1, 1000000))
             segment_outdir = self._get_segment_outdir(segment)
             os.makedirs(segment_outdir, exist_ok=True)
             
@@ -246,7 +280,7 @@ class OpenMMPropagator(BasePropagator):
             segment.pcoord = self._calculate_pcoord(segment_outdir, initial_pos)
             self._finalize_segment(segment, starttime)
         
-        self._print_completion(len(segments), time.time() - starttime)
+        self._print_completion(len(segments), time.time() - batch_start)
         return segments
 
 class BaseDCDReporter:
@@ -261,7 +295,7 @@ class BaseDCDReporter:
     def describeNextReport(self, simulation):
         return (self._reportInterval, True, False, False, False, self._enforce)
     
-    def _ensure_open(self, natoms):
+    def _ensure_open(self):
         if self._dcd is None:
             self._dcd = mdtraj.formats.DCDTrajectoryFile(
                 self._file, 'a' if self._append else 'w', force_overwrite=True
@@ -272,7 +306,7 @@ class BaseDCDReporter:
     
     def report(self, simulation, state):
         xyz = self._get_positions(state)
-        self._ensure_open(xyz.shape[1])
+        self._ensure_open()
         self._dcd.write(xyz)
     
     def __del__(self):
@@ -302,7 +336,7 @@ class SoluteDCDReporter(BaseDCDReporter):
         return sel[np.newaxis, :, :]
 
 
-def write_dcd_from_positions(filepath, positions, topology=None):
+def write_dcd_from_positions(filepath, positions):
     if positions.ndim == 2:
         positions = positions[np.newaxis, :, :]
     
@@ -345,8 +379,7 @@ class OpenMMExplicitPropagator(OpenMMPropagator):
     def _create_system(self):
         system = self.forcefield.createSystem(
             self.pdb.topology,
-            nonbondedMethod=self.nonbondedMethod
-,
+            nonbondedMethod=self.nonbondedMethod,
             constraints=HBonds,
             rigidWater=True,
             hydrogenMass=self.hydrogenMass
@@ -361,6 +394,10 @@ class OpenMMExplicitPropagator(OpenMMPropagator):
     def _setup_reporters(self, simulation, segment_outdir):
         if self.save_format == 'dcd':
             dcd_path = os.path.join(segment_outdir, 'seg.dcd')
+            for r in simulation.reporters:
+                if hasattr(r, '_dcd') and r._dcd is not None:
+                    r._dcd.close()
+                    r._dcd = None
             simulation.reporters.clear()
             simulation.reporters.append(
                 SoluteDCDReporter(dcd_path, self.save_steps, self.solute_atom_indices,
@@ -398,8 +435,10 @@ class BaseProgressCoordinate:
 
 class RMSDProgressCoordinate(BaseProgressCoordinate):
 
-    def __init__(self, reference_pdb_path=None, reference_xml_path=None, atom_selection="name P or name CA", components=[0]):
+    def __init__(self, reference_pdb_path=None, reference_xml_path=None, atom_selection="name P or name CA", components=None):
         super().__init__()
+        if components is None:
+            components = [0]
         self.reference_pdb_path = reference_pdb_path
         self.reference_xml_path = reference_xml_path
         self.atom_selection = atom_selection
@@ -435,14 +474,12 @@ class RMSDProgressCoordinate(BaseProgressCoordinate):
             topology = mdtraj.Topology()
             chain = topology.add_chain()
             for i in range(n_atoms):
-                residue = topology.add_residue(f"RES", chain)
-                topology.add_atom(f"P", mdtraj.element.carbon, residue)
+                residue = topology.add_residue("RES", chain)
+                topology.add_atom("P", mdtraj.element.phosphorus, residue)
             
             traj = mdtraj.Trajectory(data_nm, topology)
-            
-            if self.reference_traj is None:
-                self.reference_traj = traj[0]
-                self.atom_indices = None
+            self.reference_traj = traj[0]
+            self.atom_indices = None
         
         rmsd_values = mdtraj.rmsd(traj, self.reference_traj)
         rmsd_values = rmsd_values * 10.0

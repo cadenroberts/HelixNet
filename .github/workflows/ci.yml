@@ -34,11 +34,11 @@ jobs:
           mdtraj \
           numpy \
           requests
-        pip install pytest pytest-mock responses paramiko streamlit
+        pip install -r requirements.txt
     
     - name: Shell script syntax check
       run: |
-        for f in run.sh test.sh westpa_template/env.sh; do
+        for f in run.sh test.sh; do
           echo "Checking $f..."
           bash -n "$f"
         done
@@ -54,11 +54,3 @@ jobs:
       run: |
         python -m pytest tests/ -v --tb=short
     
-    - name: Verify smoke test passed
-      shell: bash -l {0}
-      run: |
-        if [ $? -ne 0 ]; then
-          echo "Smoke test failed"
-          exit 1
-        fi
-        echo "Smoke test passed"

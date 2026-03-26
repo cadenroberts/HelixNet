@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-"""HelixNet unified entrypoint for UI, config reads, and preprocessing."""
+"""NERSC Distributed Molecular Simulation: UI, config reads, and preprocessing."""
 
 import argparse
 import json
@@ -23,7 +23,6 @@ except ImportError:  # pragma: no cover - streamlit only needed for UI paths
     st = None
 
 APP_DIR = pathlib.Path(__file__).resolve().parent
-CONFIG_PATH = APP_DIR / "config.json"
 CONFIG_EXAMPLE_PATH = APP_DIR / "config.example.json"
 PDB_IDS_PATH = APP_DIR / "pdb_ids.json"
 
@@ -91,7 +90,10 @@ def _requests_required():
 
 
 def _runtime_config_dir() -> pathlib.Path:
-    return pathlib.Path(os.environ.get("HELIXNET_CONFIG_DIR", str(APP_DIR)))
+    return pathlib.Path(
+        os.environ.get("NDMS_CONFIG_DIR")
+        or os.environ.get("HELIXNET_CONFIG_DIR", str(APP_DIR))
+    )
 
 
 def _runtime_config_path() -> pathlib.Path:
@@ -99,7 +101,20 @@ def _runtime_config_path() -> pathlib.Path:
 
 
 def load_runtime_config() -> dict:
-    with open(_runtime_config_path(), encoding="utf-8") as f:
+    path = _runtime_config_path()
+    if not path.exists():
+        fallback = _runtime_config_dir() / "config.example.json"
+        if fallback.exists():
+            path = fallback
+        elif CONFIG_EXAMPLE_PATH.exists():
+            path = CONFIG_EXAMPLE_PATH
+    if not path.exists():
+        raise FileNotFoundError(
+            f"No config file found. Searched: {_runtime_config_path()}, "
+            f"{_runtime_config_dir() / 'config.example.json'}, {CONFIG_EXAMPLE_PATH}. "
+            f"Copy config.example.json to config.json and edit it."
+        )
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -112,13 +127,11 @@ def get_config_value(dot_path: str):
 
 
 def load_config() -> dict:
-    path = CONFIG_PATH if CONFIG_PATH.exists() else CONFIG_EXAMPLE_PATH
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
+    return load_runtime_config()
 
 
 def save_config(cfg: dict):
-    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+    with open(_runtime_config_path(), "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=2)
         f.write("\n")
 
@@ -173,47 +186,58 @@ def run_script(cfg: dict, command: str, placeholder) -> str:
         client = _get_ssh_client(cfg)
         if client is None:
             return ""
-        cmd = f"cd {project_dir} && bash -lc {json.dumps(command)}"
-        _, stdout, stderr = client.exec_command(cmd, get_pty=True)
-        lines: list[str] = []
-        for line in stdout:
-            lines.append(strip_ansi(line))
-            placeholder.code("".join(lines))
-        err = stderr.read().decode()
-        if err:
-            lines.append(err)
-            placeholder.code("".join(lines))
-        client.close()
-        return "".join(lines)
+        try:
+            cmd = f"cd {project_dir} && bash -lc {json.dumps(command)}"
+            _, stdout, stderr = client.exec_command(cmd, get_pty=True)
+            lines: list[str] = []
+            for line in stdout:
+                lines.append(strip_ansi(line))
+                placeholder.code("".join(lines))
+            err = stderr.read().decode()
+            if err:
+                lines.append(err)
+                placeholder.code("".join(lines))
+            return "".join(lines)
+        finally:
+            client.close()
     proc = subprocess.Popen(
         ["bash", "-lc", command],
-        cwd=str(APP_DIR),
+        cwd=project_dir,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
     )
-    lines: list[str] = []
-    assert proc.stdout is not None
-    for line in proc.stdout:
-        lines.append(strip_ansi(line))
-        placeholder.code("".join(lines))
-    proc.wait()
-    return "".join(lines)
+    try:
+        lines: list[str] = []
+        if proc.stdout is None:
+            raise RuntimeError("subprocess stdout is None despite PIPE")
+        for line in proc.stdout:
+            lines.append(strip_ansi(line))
+            placeholder.code("".join(lines))
+        return "".join(lines)
+    finally:
+        try:
+            proc.wait(timeout=300)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait()
 
 
 def run_remote_cmd(cfg: dict, cmd: str) -> str:
     client = _get_ssh_client(cfg)
     if client is None:
         return ""
-    _, stdout, _ = client.exec_command(cmd)
-    result = stdout.read().decode()
-    client.close()
-    return result
+    try:
+        _, stdout, _ = client.exec_command(cmd)
+        return stdout.read().decode()
+    finally:
+        client.close()
 
 
 def _auto_method(payload: dict) -> str:
     encoded = json.dumps(payload)
-    return "get" if len(encoded) <= MAX_GET_URL_LEN else "post"
+    url_len = len(RCSB_SEARCH_URL) + len("?json=") + len(urllib.parse.quote(encoded))
+    return "get" if url_len <= MAX_GET_URL_LEN else "post"
 
 
 def _rcsb_handle(resp: requests.Response) -> tuple[dict | None, str | None]:
@@ -311,7 +335,9 @@ def execute_rcsb_search(
 
     data, err = _rcsb_handle(resp)
     if err:
-        return [], data or {"error": err}, sent
+        error_data = data if data is not None else {}
+        error_data["error"] = err
+        return [], error_data, sent
     if data is None:
         return [], {"error": "Empty response"}, sent
 
@@ -382,7 +408,9 @@ def rcsb_search_unreleased(query: dict) -> tuple[list[str], dict]:
         return [], {"error": str(exc)}
     data, err = _rcsb_handle(resp)
     if err:
-        return [], data or {"error": err}
+        error_data = data if data is not None else {}
+        error_data["error"] = err
+        return [], error_data
     if data is None:
         return [], {"error": "Empty response"}
     ids = [r.get("identifier", "") for r in data.get("result_set", [])]
@@ -425,9 +453,8 @@ def scan_wp_dirs(cfg: dict) -> list[dict]:
         listing = run_remote_cmd(cfg, f"ls -d {out_dir_str}/*_WP 2>/dev/null || true")
         dirs = [os.path.basename(d.strip()) for d in listing.strip().splitlines() if d.strip()]
     else:
-        scan_root = _resolve_out_dir(cfg, APP_DIR)
-        if scan_root.is_dir():
-            dirs = sorted(d.name for d in scan_root.iterdir() if d.is_dir() and d.name.endswith("_WP"))
+        if out_dir.is_dir():
+            dirs = sorted(d.name for d in out_dir.iterdir() if d.is_dir() and d.name.endswith("_WP"))
         else:
             dirs = []
 
@@ -446,16 +473,15 @@ def scan_wp_dirs(cfg: dict) -> list[dict]:
                 ).strip()
                 row["Iterations"] = iters if iters else "0"
         else:
-            scan_root = _resolve_out_dir(cfg, APP_DIR)
-            h5 = scan_root / directory / "west.h5"
+            h5 = out_dir / directory / "west.h5"
             row["west.h5"] = h5.exists() and h5.stat().st_size > 0
             if row["west.h5"]:
                 try:
-                    out = subprocess.check_output(["h5ls", f"{scan_root / directory}/west.h5/iterations"], text=True, stderr=subprocess.DEVNULL)
+                    out = subprocess.check_output(["h5ls", f"{out_dir / directory}/west.h5/iterations"], text=True, stderr=subprocess.DEVNULL)
                     nums = [int(m.group(1)) for m in re.finditer(r"iter_(\d+)", out)]
                     row["Iterations"] = str(max(nums)) if nums else "0"
-                except Exception:
-                    row["Iterations"] = "err"
+                except Exception as exc:
+                    row["Iterations"] = f"err: {exc}"
 
         target = cfg.get("westpa", {}).get("target_iterations", 12500)
         try:
@@ -471,12 +497,6 @@ def scan_wp_dirs(cfg: dict) -> list[dict]:
         rows.append(row)
 
     return rows
-
-
-def credentials_gate_passed(cfg: dict) -> bool:
-    if detect_execution_mode() == "local":
-        return True
-    return bool((cfg.get("execution", {}).get("nersc_user") or "").strip())
 
 
 def _import_preprocess_deps():
@@ -502,46 +522,8 @@ def validate_pdb_id(pdbid: str) -> None:
 
 
 def create_folder(folder_path: str):
-    if not os.path.exists(folder_path):
-        os.makedirs(f"{folder_path}/raw", exist_ok=True)
-        os.makedirs(f"{folder_path}/processed", exist_ok=True)
-
-
-def get_non_water_atom_indexes(topology):
-    _import_preprocess_deps()
-    return np.array([a.index for a in topology.atoms() if a.residue.name != "HOH"])
-
-
-def get_atomSubset(pdb_path: str):
-    _import_preprocess_deps()
-    protein_residues = {
-        "ALA",
-        "ASN",
-        "CYS",
-        "GLU",
-        "HIS",
-        "LEU",
-        "MET",
-        "PRO",
-        "THR",
-        "TYR",
-        "ARG",
-        "ASP",
-        "GLN",
-        "GLY",
-        "ILE",
-        "LYS",
-        "PHE",
-        "SER",
-        "TRP",
-        "VAL",
-    }
-    pdb = PDBFile(pdb_path)
-    atom_subset = []
-    for atom in pdb.getTopology().atoms():
-        if atom.residue.name in protein_residues:
-            atom_subset.append(atom.index)
-    return atom_subset
+    os.makedirs(f"{folder_path}/raw", exist_ok=True)
+    os.makedirs(f"{folder_path}/processed", exist_ok=True)
 
 
 def get_rcsb_ligand_smiles(comp_id):
@@ -554,8 +536,8 @@ def get_rcsb_ligand_smiles(comp_id):
 def get_rcsb_ligand_smiles_exc(comp_id):
     _requests_required()
     comp_id = str(comp_id)
-    if len(comp_id) != 3:
-        raise RuntimeError("Invalid comp_id, must be a 3 letter string.")
+    if not comp_id or len(comp_id) > 3:
+        raise RuntimeError("Invalid comp_id, must be a 1-3 character string.")
     query_string = (
         '{chem_comp(comp_id:"'
         + comp_id
@@ -564,12 +546,17 @@ def get_rcsb_ligand_smiles_exc(comp_id):
     query_url = "https://data.rcsb.org/graphql?query=" + urllib.parse.quote(query_string)
     response = requests.get(query_url, timeout=30)
     response.raise_for_status()
-    return response.json()["data"]["chem_comp"]["rcsb_chem_comp_descriptor"]["SMILES_stereo"]
+    try:
+        return response.json()["data"]["chem_comp"]["rcsb_chem_comp_descriptor"]["SMILES_stereo"]
+    except (KeyError, TypeError) as exc:
+        raise RuntimeError(f"Unexpected RCSB GraphQL response for {comp_id}: {exc}") from exc
 
 
 def replace_ligands(pdb_filename, modeller, smiles_templates=True):
     _import_preprocess_deps()
     pdb_mol = Chem.rdmolfiles.MolFromPDBFile(pdb_filename, removeHs=False, proximityBonding=True)
+    if pdb_mol is None:
+        return []
     standard_residues = {
         "ALA",
         "ARG",
@@ -594,17 +581,22 @@ def replace_ligands(pdb_filename, modeller, smiles_templates=True):
         "TYR",
         "VAL",
         "HOH",
+        "DA", "DT", "DC", "DG", "DU",
+        "A", "U", "C", "G", "N",
     }
     fragments = {}
     small_molecules_seen = {}
     for frag in Chem.rdmolops.GetMolFrags(pdb_mol, asMols=True):
         atom0 = frag.GetAtomWithIdx(0)
-        r_name = atom0.GetPDBResidueInfo().GetResidueName()
+        info0 = atom0.GetPDBResidueInfo()
+        if info0 is None:
+            continue
+        r_name = info0.GetResidueName()
         if frag.GetNumAtoms() == 1 or r_name in standard_residues:
             continue
-        r_id = atom0.GetPDBResidueInfo().GetResidueNumber()
-        r_chain = atom0.GetPDBResidueInfo().GetChainId()
-        if all(r_id == a.GetPDBResidueInfo().GetResidueNumber() for a in frag.GetAtoms()):
+        r_id = info0.GetResidueNumber()
+        r_chain = info0.GetChainId()
+        if all((ai := a.GetPDBResidueInfo()) is not None and r_id == ai.GetResidueNumber() for a in frag.GetAtoms()):
             rcsb_smiles = get_rcsb_ligand_smiles(r_name)
             if rcsb_smiles is None:
                 continue
@@ -643,6 +635,8 @@ def add_ff_template_generator_from_smiles(forcefield, small_molecules_smiles, ca
     small_molecules = []
     for smiles in small_molecules_smiles:
         template = Chem.MolFromSmiles(smiles)
+        if template is None:
+            continue
         small_molecules.append(Molecule.from_rdkit(template, allow_undefined_stereo=True))
     gaff = GAFFTemplateGenerator(molecules=small_molecules, cache=cache_path)
     forcefield.registerTemplateGenerator(gaff.generator)
@@ -738,8 +732,8 @@ def _display_results(ids: list[str], raw: dict, prefix: str):
 
 def main():
     _streamlit_required()
-    st.set_page_config(page_title="HelixNet", layout="wide")
-    st.title("HelixNet")
+    st.set_page_config(page_title="NDMS", layout="wide")
+    st.title("NERSC Distributed Molecular Simulation")
     cfg = load_config()
     tab_cfg, tab_search, tab_pipe, tab_status = st.tabs(["Configuration", "RCSB Search", "Pipeline", "Status"])
 
@@ -775,9 +769,14 @@ def main():
         target_id = st.text_input("Setup PDB ID", value="1ABC")
         output_area = st.empty()
         if run_setup:
-            run_script(cfg, f"./run.sh setup {target_id}", output_area)
+            try:
+                validate_pdb_id(target_id)
+            except ValueError as exc:
+                st.error(str(exc))
+            else:
+                run_script(cfg, f"./run.sh setup {target_id}", output_area)
         elif run_batch:
-            run_script(cfg, "./run.sh batch", output_area)
+            run_script(cfg, "./run.sh batch-setup", output_area)
         elif run_jobs:
             run_script(cfg, "./run.sh run", output_area)
         elif run_full:
@@ -809,19 +808,30 @@ def _run_cli(argv: list[str]) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
     if args.command == "read-config":
-        value = get_config_value(args.key)
+        try:
+            value = get_config_value(args.key)
+        except (FileNotFoundError, KeyError, TypeError) as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
         print(value if isinstance(value, str) else json.dumps(value))
         return 0
     if args.command == "preprocess":
-        validate_pdb_id(args.pdb_id)
-        prepare_protein(args.pdb_id)
+        try:
+            validate_pdb_id(args.pdb_id)
+            prepare_protein(args.pdb_id)
+        except Exception as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
         return 0
     if args.command == "ui":
         main()
         return 0
-    main()
+    parser.print_help()
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(_run_cli(sys.argv[1:]))
+    if sys.argv[1:]:
+        sys.exit(_run_cli(sys.argv[1:]))
+    elif st is not None:
+        main()

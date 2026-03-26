@@ -33,8 +33,7 @@ west:
     num_gpus: {{NUM_GPUS}}                
     gpu_precision: {{GPU_PRECISION}} 
     forcefield:
-      - {{FF_0}}
-      - {{FF_1}}
+{{FF_LIST}}
     temperature: {{TEMPERATURE}}           # K
     timestep: {{TIMESTEP}}                # fs
     friction: {{FRICTION}}                # 1/ps

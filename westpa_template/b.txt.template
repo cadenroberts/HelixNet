@@ -1,2 +1,2 @@
-A   1.0   {{PDB_ID}}_processed.pdb   0.0
+A   1.0   processed/{{PDB_ID}}_processed.pdb   0.0
 

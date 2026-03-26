@@ -6,7 +6,9 @@
     "project_dir": "/global/cfs/cdirs/m4229/caden/westpa_dna_protein",
     "out_dir": "out",
     "micromamba_prefix": "/global/cfs/cdirs/m4229/caden/micromamba_root/envs/openmm",
-    "westpa_env_prefix": "/global/cfs/cdirs/m4229/caden/micromamba_root/envs/westpa_env"
+    "westpa_env_prefix": "/global/cfs/cdirs/m4229/caden/micromamba_root/envs/westpa_env",
+    "mamba_exe": "/global/cfs/cdirs/m4229/caden/micromamba_root/bin/micromamba",
+    "mamba_root_prefix": "/global/cfs/cdirs/m4229/caden/micromamba_root"
   },
   "rcsb_search": {
     "keywords": ["DNA BINDING PROTEIN, DNA", "RNA BINDING PROTEIN, RNA", "DNA", "RNA"],
@@ -28,7 +30,7 @@
   },
   "westpa": {
     "target_iterations": 12500,
-    "max_run_wallclock": "72:00:00",
+    "max_run_wallclock": "47:00:00",
     "pcoord_ndim": 1,
     "pcoord_len": 11,
     "nbins": 9,

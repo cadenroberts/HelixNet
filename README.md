@@ -1,6 +1,6 @@
 # NERSC Distributed Molecular Simulation
 
-Repository: [cadenroberts/nersc-distributed-molecular-simulation](https://github.com/cadenroberts/nersc-distributed-molecular-simulation).
+Repository: [cadenroberts/nersc-distributed-molecular-simulation](https://github.com/cadenroberts/nersc-distributed-molecular-simulation). Clone into a folder of the same name, for example `git clone …/nersc-distributed-molecular-simulation.git && cd nersc-distributed-molecular-simulation`.
 
 Distributed molecular simulation system for orchestrating WESTPA weighted ensemble sampling with OpenMM on GPU clusters. Automates PDB preprocessing, WESTPA workspace setup, Slurm job submission, and iteration monitoring across NERSC Perlmutter nodes.
 
